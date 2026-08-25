@@ -1,0 +1,46 @@
+name: Deploy web build to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Same commands as the local `npm run deploy` script (see package.json):
+      # export the Expo web build, then duplicate index.html as 404.html so
+      # GitHub Pages serves the SPA for any deep-linked route instead of a
+      # real 404 (expo-router routes are client-side, GH Pages doesn't know
+      # about them).
+      - name: Export web build
+        env:
+          EXPO_PUBLIC_AI_PROVIDER: ${{ secrets.EXPO_PUBLIC_AI_PROVIDER }}
+          EXPO_PUBLIC_OPENROUTER_API_KEY: ${{ secrets.EXPO_PUBLIC_OPENROUTER_API_KEY }}
+          EXPO_PUBLIC_ANTHROPIC_API_KEY: ${{ secrets.EXPO_PUBLIC_ANTHROPIC_API_KEY }}
+        run: |
+          npx expo export --platform web
+          cp dist/index.html dist/404.html
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
