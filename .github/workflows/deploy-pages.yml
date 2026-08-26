@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -44,3 +44,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          # The gh-pages branch already existed from an earlier local
+          # `npm run deploy` run, with history this Action never created —
+          # force_orphan replaces it with one fresh commit each deploy
+          # instead of trying to reconcile against that unrelated history,
+          # which is what a bare `git` exit-1 failure here usually means.
+          force_orphan: true
