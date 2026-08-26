@@ -14,7 +14,7 @@ import { hasApiKey } from './anthropicClient';
 
 const FALLBACK_TEXT = "I'm having a little trouble connecting right now. Mind trying that again in a moment?";
 const NO_API_KEY_TEXT =
-  "I can't actually think yet — this app doesn't have an Anthropic API key configured, so I'm not connected to anything. Add one to the .env file (EXPO_PUBLIC_ANTHROPIC_API_KEY) and restart the app to turn me on.";
+  "I can't actually think yet — this app doesn't have an AI backend configured right now. Ask whoever set up this app to check its .env file and restart it to turn me on.";
 
 const OBJECTIVE = `You're answering a caregiver's question about a specific lesson they're currently going through in the Otter Companion Parent Learning Series. This is scoped, in-context lesson support, not an open-ended coaching conversation. Treat the lesson content given below as your primary reference: when the caregiver asks for clarification, an example, or how something applies to their family, draw from what the lesson actually says first, then personalize using what you know about this family. If they ask something genuinely unrelated to the lesson, answer briefly and warmly, then gently steer back toward the lesson. Keep answers focused and conversational — a few sentences, since this is a quick in-context question, not a new lesson.`;
 

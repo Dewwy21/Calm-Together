@@ -91,8 +91,8 @@ export default function OnboardingScreen() {
     await persistOnboardingAnswers(answers);
     await persistOnboardingStatus('completed');
     const childId = ensureFirstChild();
-    await baselineAssessment.submitAssessment(childId, answers);
-    router.replace('/den');
+    const recordId = await baselineAssessment.submitAssessment(childId, answers);
+    router.replace(`/(modals)/assessment-detail/${recordId}?justCompleted=1`);
   }
 
   function setAnswer(questionId: string, value: string | string[]) {

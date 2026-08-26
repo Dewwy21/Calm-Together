@@ -27,7 +27,7 @@ export default function PrivacyScreen() {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <AnimatedMascot size={40} motion="idle" propIcon={ShieldIcon} />
-          <SpeechBubble text="Your Daily Log stays on this device. A few AI features send message text to Anthropic to generate a response." />
+          <SpeechBubble text="Your Daily Log stays on this device. A few AI features send message text to our AI provider to generate a response." />
         </View>
 
         <View style={{ gap: spacing.sm }}>
@@ -35,7 +35,7 @@ export default function PrivacyScreen() {
           <Text style={[typography.body, { color: color.textSecondary }]}>
             To write Help Bot replies, Parent Replay reconstructions, and Conversation Simulator sessions, the
             message text for that conversation — along with a short, relevant summary of your child's profile and
-            recent Daily Log entries — is sent to Anthropic's API to generate the response. Your full Daily Log,
+            recent Daily Log entries — is sent to our AI provider's API to generate the response. Your full Daily Log,
             saved Reflections, and everything else in the app stays on this device and is never sent anywhere.
           </Text>
         </View>

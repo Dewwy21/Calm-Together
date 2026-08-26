@@ -11,6 +11,18 @@ export function useBaselineAssessmentState() {
   const { currentUser } = useAuthContext();
   const [assessments, setAssessments] = useState<BaselineAssessmentRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // Bumped by submitAssessment after every successful write, to force the
+  // effect below to re-read storage. Needed because submitAssessment is
+  // called via a reference captured at the *caller's* last render — on the
+  // very first assessment ever completed, that's before the new child
+  // profile (and its currentChildId) existed, so any comparison inside
+  // submitAssessment against "the current currentChildId" would compare
+  // against a permanently stale `null`, not a value that catches up later.
+  // Routing the update back through this effect instead means the actual
+  // reload always uses whatever currentChildId React has *at the time the
+  // effect re-runs* — never a stale closure — so it's correct regardless of
+  // whether currentChildId or the storage write lands first.
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Only reads here — writes happen exclusively inside submitAssessment's
   // own explicit read-modify-write. A separate "persist whenever
@@ -27,7 +39,7 @@ export function useBaselineAssessmentState() {
       setAssessments(stored);
       setLoaded(true);
     });
-  }, [currentChildId]);
+  }, [currentChildId, reloadToken]);
 
   const sortedAssessments = useMemo(
     () => [...assessments].sort((a, b) => b.completedAtISO.localeCompare(a.completedAtISO)),
@@ -44,7 +56,7 @@ export function useBaselineAssessmentState() {
   // loaded for this child yet either) so this is correct regardless of
   // render timing. Appends only — never overwrites or removes a previous
   // record, so every attempt stays in Assessment History.
-  async function submitAssessment(childId: string, answers: OnboardingAnswers) {
+  async function submitAssessment(childId: string, answers: OnboardingAnswers): Promise<string> {
     const record: BaselineAssessmentRecord = {
       id: createId(),
       childId,
@@ -55,9 +67,8 @@ export function useBaselineAssessmentState() {
     const existing = await loadBaselineAssessments(childId);
     const updated = [...existing, record];
     await persistBaselineAssessments(childId, updated);
-    if (childId === currentChildId) {
-      setAssessments(updated);
-    }
+    setReloadToken((t) => t + 1);
+    return record.id;
   }
 
   return { assessments: sortedAssessments, loaded, submitAssessment };

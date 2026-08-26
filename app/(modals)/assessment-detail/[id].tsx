@@ -3,14 +3,17 @@ import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../src/theme';
-import { Button, BackButton } from '../../../src/components/ui';
+import { Button, BackButton, Card } from '../../../src/components/ui';
 import { SECTIONS } from '../../../src/features/onboarding/sections';
 import { resolveAnswerText } from '../../../src/features/onboarding/resolveAnswerText';
 import { QUESTIONS } from '../../../src/features/onboarding/questions';
 import { useBaselineAssessmentContext } from '../../../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { computePssScore, computePaqSubscales } from '../../../src/features/baselineAssessment/scoring';
+import { BaselinePssScoreCard } from '../../../src/features/baselineAssessment/BaselinePssScoreCard';
+import { BaselineRadarChart } from '../../../src/features/baselineAssessment/BaselineRadarChart';
 
 export default function AssessmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, justCompleted } = useLocalSearchParams<{ id: string; justCompleted?: string }>();
   const { color, spacing, typography, radii, shadows } = useTheme();
   const router = useRouter();
   const { assessments } = useBaselineAssessmentContext();
@@ -27,13 +30,17 @@ export default function AssessmentDetailScreen() {
   }
 
   const completedAt = new Date(record.completedAtISO);
+  const pssScore = computePssScore(record.answers);
+  const paqSubscales = computePaqSubscales(record.answers);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: color.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.lg, paddingBottom: spacing.sm }}>
-        <BackButton onPress={() => router.back()} />
-        <View style={{ marginLeft: spacing.sm }}>
-          <Text style={[typography.h1, { color: color.textPrimary }]}>Baseline Assessment</Text>
+        {!justCompleted && <BackButton onPress={() => router.back()} />}
+        <View style={{ marginLeft: justCompleted ? 0 : spacing.sm }}>
+          <Text style={[typography.h1, { color: color.textPrimary }]}>
+            {justCompleted ? 'Your Results' : 'Baseline Assessment'}
+          </Text>
           <Text style={[typography.bodySmall, { color: color.textSecondary }]}>
             {completedAt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })} ·{' '}
             {completedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
@@ -42,6 +49,29 @@ export default function AssessmentDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl }}>
+        {(pssScore || paqSubscales) && (
+          <View style={{ gap: spacing.md }}>
+            <Text style={[typography.label, { color: color.textSecondary, letterSpacing: 1 }]}>YOUR RESULTS</Text>
+            {pssScore && <BaselinePssScoreCard score={pssScore} />}
+            {paqSubscales && (
+              <Card>
+                <Text style={[typography.h3, { color: color.textPrimary }]}>Psychological Flexibility (6-PAQ)</Text>
+                <Text style={[typography.caption, { color: color.textSecondary, marginTop: 2 }]}>
+                  Six areas of parental psychological flexibility, by subscale.
+                </Text>
+                <BaselineRadarChart subscales={paqSubscales} />
+              </Card>
+            )}
+          </View>
+        )}
+        {!pssScore && !paqSubscales && (
+          <Text style={[typography.bodySmall, { color: color.textSecondary }]}>
+            This attempt doesn't have enough answered questions in Sections 4-5 to calculate a score.
+          </Text>
+        )}
+
+        <Text style={[typography.label, { color: color.textSecondary, letterSpacing: 1 }]}>YOUR ANSWERS</Text>
+
         {SECTIONS.map((section) => {
           const rows = section.questionIds
             .map((questionId) => ({ questionId, text: resolveAnswerText(record.answers, questionId) }))
@@ -74,6 +104,12 @@ export default function AssessmentDetailScreen() {
           );
         })}
       </ScrollView>
+
+      {justCompleted && (
+        <View style={{ padding: spacing.lg }}>
+          <Button label="Continue to Your Den" onPress={() => router.replace('/den')} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

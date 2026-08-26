@@ -14,7 +14,7 @@ import { hasApiKey } from '../ai/anthropicClient';
 
 const FALLBACK_TEXT = "I'm having a little trouble connecting right now. Mind trying that again in a moment?";
 const NO_API_KEY_TEXT =
-  "I can't actually think yet — this app doesn't have an Anthropic API key configured, so I'm not connected to anything. Add one to the .env file (EXPO_PUBLIC_ANTHROPIC_API_KEY) and restart the app to turn me on.";
+  "I can't actually think yet — this app doesn't have an AI backend configured right now. Ask whoever set up this app to check its .env file and restart it to turn me on.";
 
 function activityHref(activity: { feature: string; id: string | null }): string {
   switch (activity.feature) {
