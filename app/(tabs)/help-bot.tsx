@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { ToggleChip, Chip, ConfirmDialog } from '../../src/components/ui';
 import { Mascot } from '../../src/components/Mascot';
-import { WaveformIcon, MicrophoneIcon, ChatIcon, ArrowRightIcon, LanternIcon, PlusIcon, MenuListIcon } from '../../src/components/icons';
+import { WaveformIcon, MicrophoneIcon, ChatIcon, ArrowRightIcon, LanternIcon, PlusIcon, MenuListIcon, HandsIcon } from '../../src/components/icons';
 import { useHelpBotContext } from '../../src/features/helpBot/HelpBotProvider';
 import { HelpBotMessageBubble } from '../../src/features/helpBot/HelpBotMessageBubble';
 import { HelpBotIntro } from '../../src/features/helpBot/HelpBotIntro';
@@ -153,6 +153,40 @@ export default function HelpBotScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[typography.bodyEmphasis, { color: color.textPrimary }]}>Practice a Conversation</Text>
             <Text style={[typography.caption, { color: color.textSecondary }]}>Rehearse a tough moment with an AI child first</Text>
+          </View>
+          <ArrowRightIcon size={16} color={color.textSecondary} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/(modals)/act-coach')}
+          style={[
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              backgroundColor: color.surface,
+              borderRadius: radii.lg,
+              padding: spacing.md,
+              marginTop: spacing.sm,
+            },
+            shadows.card,
+          ]}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radii.md,
+              backgroundColor: color.accentTint,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <HandsIcon size={20} color={color.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[typography.bodyEmphasis, { color: color.textPrimary }]}>ACT Parenting Coach</Text>
+            <Text style={[typography.caption, { color: color.textSecondary }]}>Get an ACT-based read on what's going on right now</Text>
           </View>
           <ArrowRightIcon size={16} color={color.textSecondary} />
         </Pressable>
