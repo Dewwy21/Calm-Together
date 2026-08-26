@@ -30,11 +30,15 @@ jobs:
       # GitHub Pages serves the SPA for any deep-linked route instead of a
       # real 404 (expo-router routes are client-side, GH Pages doesn't know
       # about them).
+      #
+      # Deliberately NOT passing an AI API key here. EXPO_PUBLIC_* vars get
+      # inlined straight into the shipped JS bundle, which GitHub's push
+      # protection (correctly) refused to let through once it spotted a
+      # real key in there — anyone visiting this public site could read it
+      # out of the bundle or the network tab. This public build ships with
+      # AI features showing their normal "not connected" fallback; full AI
+      # still works when running locally against your own .env.
       - name: Export web build
-        env:
-          EXPO_PUBLIC_AI_PROVIDER: ${{ secrets.EXPO_PUBLIC_AI_PROVIDER }}
-          EXPO_PUBLIC_OPENROUTER_API_KEY: ${{ secrets.EXPO_PUBLIC_OPENROUTER_API_KEY }}
-          EXPO_PUBLIC_ANTHROPIC_API_KEY: ${{ secrets.EXPO_PUBLIC_ANTHROPIC_API_KEY }}
         run: |
           npx expo export --platform web
           cp dist/index.html dist/404.html
