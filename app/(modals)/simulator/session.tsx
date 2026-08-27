@@ -11,7 +11,9 @@ import { usePreferencesContext } from '../../../src/features/preferences/Prefere
 import { getScenarioById } from '../../../src/features/simulator/simulatorScenarios';
 import { useSimulatorState } from '../../../src/features/simulator/useSimulatorState';
 import { SimulatorMessage } from '../../../src/features/simulator/types';
+import { MASCOT_POSES } from '../../../src/components/Mascot';
 import { DisclaimerNote } from '../../../src/features/aiEngine/DisclaimerNote';
+import { handleComposerKeyPress } from '../../../src/utils/composerKeyPress';
 
 export default function SimulatorSessionScreen() {
   const { scenarioId, intensity: intensityParam } = useLocalSearchParams<{ scenarioId: string; intensity: string }>();
@@ -72,7 +74,7 @@ export default function SimulatorSessionScreen() {
 
         {sim.status === 'coaching' && (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
-            <AnimatedMascot size={90} motion="sway" />
+            <AnimatedMascot size={90} motion={MASCOT_POSES.thinking.motion} propIcon={MASCOT_POSES.thinking.propIcon} />
             <Text style={[typography.body, { color: color.textSecondary }]}>Looking back over how that went...</Text>
           </View>
         )}
@@ -169,6 +171,7 @@ export default function SimulatorSessionScreen() {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
+            onKeyPress={(e) => handleComposerKeyPress(e, handleSend)}
             placeholder="Say something to your child..."
             placeholderTextColor={color.textSecondary}
             multiline

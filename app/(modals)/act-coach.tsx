@@ -9,6 +9,8 @@ import { DisclaimerNote } from '../../src/features/aiEngine/DisclaimerNote';
 import { getActCoachingResponse, ActCoachResult } from '../../src/features/actCoach/actCoachEngine';
 import { sanitizeParentMessage, MAX_MESSAGE_LENGTH } from '../../src/features/actCoach/sanitizeInput';
 import { AiUnavailableError } from '../../src/features/ai/anthropicClient';
+import { handleComposerKeyPress } from '../../src/utils/composerKeyPress';
+import { MASCOT_POSES } from '../../src/components/Mascot';
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -57,10 +59,7 @@ export default function ActCoachScreen() {
   }
 
   function handleKeyPress(e: any) {
-    if (e.nativeEvent?.key === 'Enter') {
-      e.preventDefault?.();
-      handleSubmit();
-    }
+    handleComposerKeyPress(e, handleSubmit);
   }
 
   function askAnother() {
@@ -131,7 +130,7 @@ export default function ActCoachScreen() {
 
       {status === 'loading' && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
-          <AnimatedMascot size={90} motion="sway" />
+          <AnimatedMascot size={90} motion={MASCOT_POSES.thinking.motion} propIcon={MASCOT_POSES.thinking.propIcon} />
           <Text style={[typography.body, { color: color.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl }]}>
             Thinking this through...
           </Text>

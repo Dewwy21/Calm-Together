@@ -37,19 +37,38 @@ interface AskClaudeOptions<T extends z.ZodType> {
   thinkingEnabled?: boolean;
 }
 
+async function callProvider<T extends z.ZodType>(options: AskClaudeOptions<T>): Promise<z.infer<T>> {
+  if (getAiProvider() === 'openrouter') {
+    return askOpenRouterStructured(options);
+  }
+  return askAnthropicStructured(options);
+}
+
 // The one place every AI feature in the app calls through, so model choice,
 // error handling, and defaults stay consistent. Structured output
 // (output_config.format) means callers get a typed, already-parsed object
 // back instead of parsing free text out of a chat reply. Dispatches to
 // whichever provider is active (see aiProvider.ts) — every existing and
 // future AI feature that calls this function automatically follows.
+//
+// Retries once on any failure. This matters most for OpenRouter/DeepSeek:
+// that model reasons internally before writing its answer, and on some
+// prompts the reasoning runs long enough to truncate the actual JSON
+// output — intermittent and content-dependent (confirmed by direct
+// testing), not something prompt wording alone fixes. A fresh retry turns
+// "occasionally fails" into "very rarely fails twice in a row." A genuinely
+// permanent failure (no API key configured) costs nothing extra to retry —
+// that check is synchronous and throws before any network call.
 export async function askClaudeStructured<T extends z.ZodType>(
   options: AskClaudeOptions<T>
 ): Promise<z.infer<T>> {
-  if (getAiProvider() === 'openrouter') {
-    return askOpenRouterStructured(options);
+  try {
+    return await callProvider(options);
+  } catch (firstErr) {
+    // eslint-disable-next-line no-console
+    console.warn('[anthropicClient] first attempt failed, retrying once:', firstErr);
+    return await callProvider(options);
   }
-  return askAnthropicStructured(options);
 }
 
 async function askAnthropicStructured<T extends z.ZodType>({

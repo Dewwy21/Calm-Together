@@ -12,6 +12,7 @@ import { FamilyContextInput } from '../ai/familyContext';
 import { BlueprintSourceType } from '../blueprint/types';
 import { SafetyCategory } from '../aiEngine/types';
 import { Lesson } from './types';
+import { handleComposerKeyPress } from '../../utils/composerKeyPress';
 
 const QUICK_ACTIONS = ['Ask a question', 'Clarify this', 'Give me an example', 'How does this apply to my family?'] as const;
 
@@ -145,6 +146,7 @@ export function LessonChatSheet({
               ref={inputRef}
               value={inputText}
               onChangeText={setInputText}
+              onKeyPress={(e) => handleComposerKeyPress(e, () => handleSend())}
               placeholder="Ask about this lesson..."
               placeholderTextColor={color.textSecondary}
               multiline

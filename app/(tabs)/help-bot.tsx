@@ -11,6 +11,7 @@ import { HelpBotIntro } from '../../src/features/helpBot/HelpBotIntro';
 import { ThinkingBubble } from '../../src/features/reflection/MessageBubble';
 import { useSpeech } from '../../src/features/voice/useSpeech';
 import { CurrentChildBadge } from '../../src/features/profiles/CurrentChildBadge';
+import { handleComposerKeyPress } from '../../src/utils/composerKeyPress';
 
 export default function HelpBotScreen() {
   const { color, spacing, typography, radii, shadows } = useTheme();
@@ -244,6 +245,7 @@ export default function HelpBotScreen() {
           <TextInput
             value={inputText}
             onChangeText={setInputText}
+            onKeyPress={(e) => handleComposerKeyPress(e, () => handleSend())}
             placeholder="Talk to the otter..."
             placeholderTextColor={color.textSecondary}
             multiline

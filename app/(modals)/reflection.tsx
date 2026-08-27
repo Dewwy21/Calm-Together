@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { Button, ToggleChip, CloseButton } from '../../src/components/ui';
-import { AnimatedMascot } from '../../src/components/Mascot';
+import { AnimatedMascot, MASCOT_POSES } from '../../src/components/Mascot';
 import { WaveformIcon } from '../../src/components/icons';
 import { useDenContext } from '../../src/features/den/DenProvider';
 import { usePreferencesContext } from '../../src/features/preferences/PreferencesProvider';
@@ -18,6 +18,7 @@ import { useSpeech } from '../../src/features/voice/useSpeech';
 import { createId } from '../../src/features/logEvent/eventStorage';
 import { SafetyTriggeredError } from '../../src/features/aiEngine/safetyError';
 import { getSafetyResponse } from '../../src/features/aiEngine/safetyTriage';
+import { handleComposerKeyPress } from '../../src/utils/composerKeyPress';
 
 const HERO_IMAGE = require('../../assets/calm/bridge.jpg');
 
@@ -214,6 +215,7 @@ export default function ReflectionScreen() {
 
       {status === 'loading' && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
+          <AnimatedMascot size={90} motion={MASCOT_POSES.thinking.motion} propIcon={MASCOT_POSES.thinking.propIcon} />
           <Text style={[typography.body, { color: color.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl }]}>
             Putting together a reflection on this...
           </Text>
@@ -297,6 +299,7 @@ export default function ReflectionScreen() {
             <TextInput
               value={inputText}
               onChangeText={setInputText}
+              onKeyPress={(e) => handleComposerKeyPress(e, handleSend)}
               placeholder="Ask a follow-up or add a thought..."
               placeholderTextColor={color.textSecondary}
               multiline
