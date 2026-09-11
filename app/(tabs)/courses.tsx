@@ -3,16 +3,24 @@ import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, IconBubble } from '../../src/components/ui';
 import { useTheme } from '../../src/theme';
-import { TrophyIcon } from '../../src/components/icons';
+import { TrophyIcon, ArrowRightIcon } from '../../src/components/icons';
 import { COURSES } from '../../src/features/courses/courseData';
 import { getCourseAccent } from '../../src/features/courses/courseColors';
 import { useCourseProgressContext } from '../../src/features/courses/CourseProgressProvider';
+import { useProfilesContext } from '../../src/features/profiles/ProfilesProvider';
+import { getSuggestedLessonForDay } from '../../src/features/courses/coursePath';
+import { getInterventionDayNumber, TOTAL_INTERVENTION_DAYS } from '../../src/features/baselineAssessment/checkpoints';
 
 export default function CoursesScreen() {
   const theme = useTheme();
   const { color, spacing, typography, radii, shadows } = theme;
   const router = useRouter();
   const progress = useCourseProgressContext();
+  const { currentChild } = useProfilesContext();
+
+  const interventionStart = currentChild?.interventionStartDateISO;
+  const dayNumber = interventionStart ? getInterventionDayNumber(interventionStart) : null;
+  const todaysLesson = dayNumber ? getSuggestedLessonForDay(dayNumber) : null;
 
   return (
     <Screen>
@@ -20,6 +28,32 @@ export default function CoursesScreen() {
       <Text style={[typography.body, { color: color.textSecondary, marginTop: -12 }]}>
         A learning library, at your own pace.
       </Text>
+
+      {dayNumber && todaysLesson && (
+        <Pressable
+          onPress={() => router.push(`/(modals)/courses/${todaysLesson.courseId}/${todaysLesson.id}`)}
+          style={[
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              backgroundColor: color.surface,
+              borderRadius: radii.lg,
+              padding: spacing.md,
+            },
+            shadows.card,
+          ]}
+        >
+          <IconBubble icon={todaysLesson.icon} color={color.accentTint} iconColor={color.accent} size={48} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[typography.caption, { color: color.textSecondary }]}>
+              Day {dayNumber} of {TOTAL_INTERVENTION_DAYS} · Today's focus
+            </Text>
+            <Text style={[typography.bodyEmphasis, { color: color.textPrimary }]}>{todaysLesson.title}</Text>
+          </View>
+          <ArrowRightIcon size={16} color={color.textSecondary} />
+        </Pressable>
+      )}
 
       {progress.streak > 0 && (
         <View

@@ -14,18 +14,35 @@ import { useAuthContext } from '../../src/features/auth/AuthProvider';
 import { ChildAvatar } from '../../src/features/profiles/ChildAvatar';
 import { loadOnboardingStatus } from '../../src/features/onboarding/onboardingStorage';
 import { OnboardingStatus } from '../../src/features/onboarding/types';
+import { useBaselineAssessmentContext } from '../../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { getCheckpointStatus } from '../../src/features/baselineAssessment/checkpoints';
 
 export default function SettingsScreen() {
   const { color, spacing, typography } = useTheme();
   const router = useRouter();
-  const { activeProfiles } = useProfilesContext();
+  const { activeProfiles, currentChild } = useProfilesContext();
   const { account } = usePreferencesContext();
   const { currentUser } = useAuthContext();
+  const { assessments } = useBaselineAssessmentContext();
   const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>('not_started');
 
   useEffect(() => {
     loadOnboardingStatus().then(setOnboardingStatus);
   }, []);
+
+  function checkpointStatusLabel(timepoint: 'day14' | 'day28'): string {
+    const status = getCheckpointStatus(currentChild?.interventionStartDateISO, assessments, timepoint);
+    switch (status.state) {
+      case 'noProgramYet':
+        return 'Not started yet';
+      case 'upcoming':
+        return `Available ${status.dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+      case 'due':
+        return 'Ready';
+      case 'completed':
+        return `Completed ${new Date(status.completedAtISO).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    }
+  }
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: color.background }}>
@@ -76,6 +93,18 @@ export default function SettingsScreen() {
             icon={ChartIcon}
             label={onboardingStatus === 'completed' ? 'Retake Baseline Assessment' : 'Complete Baseline Assessment'}
             onPress={() => router.push('/onboarding')}
+          />
+          <SettingsRow
+            icon={ChartIcon}
+            label="Day 14 Check-In"
+            value={checkpointStatusLabel('day14')}
+            onPress={() => router.push('/onboarding?timepoint=day14')}
+          />
+          <SettingsRow
+            icon={ChartIcon}
+            label="Day 28 Assessment"
+            value={checkpointStatusLabel('day28')}
+            onPress={() => router.push('/onboarding?timepoint=day28')}
           />
           <SettingsRow icon={MenuListIcon} label="Assessment History" onPress={() => router.push('/(modals)/assessment-history')} />
         </SettingsGroup>

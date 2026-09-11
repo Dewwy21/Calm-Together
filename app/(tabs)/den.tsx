@@ -16,13 +16,22 @@ import { CurrentChildBadge } from '../../src/features/profiles/CurrentChildBadge
 import { MascotMoment } from '../../src/features/mascot/MascotMoment';
 import { useStreakCelebration } from '../../src/features/mascot/streakMilestones';
 import { useCheckInContext } from '../../src/features/checkIn/CheckInProvider';
+import { useProfilesContext } from '../../src/features/profiles/ProfilesProvider';
+import { useBaselineAssessmentContext } from '../../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { getCheckpointStatus, CHECKPOINT_LABELS } from '../../src/features/baselineAssessment/checkpoints';
 
 export default function DenScreen() {
   const { color, spacing, typography, radii, shadows } = useTheme();
   const router = useRouter();
   const den = useDenContext();
   const checkIn = useCheckInContext();
+  const { currentChild } = useProfilesContext();
+  const { assessments } = useBaselineAssessmentContext();
   const { shouldCelebrate, milestone, dismiss } = useStreakCelebration(den.streak);
+
+  const day14Status = getCheckpointStatus(currentChild?.interventionStartDateISO, assessments, 'day14');
+  const day28Status = getCheckpointStatus(currentChild?.interventionStartDateISO, assessments, 'day28');
+  const dueCheckpoint = day14Status.state === 'due' ? 'day14' : day28Status.state === 'due' ? 'day28' : null;
 
   return (
     <Screen>
@@ -109,6 +118,34 @@ export default function DenScreen() {
           onPress={() => router.push('/(modals)/weekly-check-in')}
         />
       </View>
+
+      {dueCheckpoint && (
+        <Pressable
+          onPress={() => router.push(`/onboarding?timepoint=${dueCheckpoint}`)}
+          style={[
+            { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: color.surface, borderRadius: radii.lg, padding: spacing.md },
+            shadows.card,
+          ]}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radii.md,
+              backgroundColor: color.accentTint,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChartIcon size={20} color={color.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[typography.bodyEmphasis, { color: color.textPrimary }]}>{CHECKPOINT_LABELS[dueCheckpoint]} is ready</Text>
+            <Text style={[typography.caption, { color: color.textSecondary }]}>Same questions as before — takes a few minutes</Text>
+          </View>
+          <ArrowRightIcon size={16} color={color.textSecondary} />
+        </Pressable>
+      )}
 
       <Pressable
         onPress={() => router.push('/(modals)/act-check-in')}

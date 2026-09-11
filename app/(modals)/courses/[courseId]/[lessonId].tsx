@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../../src/theme';
-import { Button, CloseButton, ToggleChip } from '../../../../src/components/ui';
+import { Button, CloseButton, ToggleChip, ConfirmDialog } from '../../../../src/components/ui';
+import { useProfilesContext } from '../../../../src/features/profiles/ProfilesProvider';
 import { AnimatedMascot } from '../../../../src/components/Mascot';
 import { ChevronLeftIcon, WaveformIcon, TrophyIcon, ChatIcon } from '../../../../src/components/icons';
 import { getCourseById, getLessonById } from '../../../../src/features/courses/courseData';
@@ -35,6 +36,7 @@ export default function LessonPlayerScreen() {
   const { width } = useWindowDimensions();
   const speech = useSpeech();
   const progress = useCourseProgressContext();
+  const profiles = useProfilesContext();
   const personalizedLessons = usePersonalizedLessonsContext();
   const blueprint = useBlueprintContext();
   const familyContext = useFamilyContextInput();
@@ -55,6 +57,25 @@ export default function LessonPlayerScreen() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [finished, setFinished] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
+  const [showInterventionStart, setShowInterventionStart] = useState(false);
+
+  // Opening any lesson, for the first time ever, starts the 28-day
+  // intervention window that Day 14/28 Baseline Assessment checkpoints are
+  // calculated from (see checkpoints.ts) — the caregiver confirms via this
+  // one-time heads-up rather than the clock starting silently. Re-prompts
+  // on the next lesson open if they dismiss without confirming.
+  useEffect(() => {
+    if (profiles.loaded && profiles.currentChild && !profiles.currentChild.interventionStartDateISO) {
+      setShowInterventionStart(true);
+    }
+  }, [profiles.loaded, profiles.currentChild]);
+
+  function confirmInterventionStart() {
+    if (profiles.currentChildId) {
+      profiles.updateChild(profiles.currentChildId, { interventionStartDateISO: new Date().toISOString() });
+    }
+    setShowInterventionStart(false);
+  }
 
   if (!course || !lesson) {
     return (
@@ -241,6 +262,16 @@ export default function LessonPlayerScreen() {
         therapistMode={preferences.therapistMode}
         noteInteraction={blueprint.noteInteraction}
         noteSafetyEvent={blueprint.noteSafetyEvent}
+      />
+
+      <ConfirmDialog
+        visible={showInterventionStart}
+        title="Starting Your 4-Week Program"
+        message="This works alongside a 28-day (4 week) program — a new suggested lesson each day in Courses, with check-in assessments at Day 14 and Day 28 to track progress. Ready to begin?"
+        confirmLabel="Let's Begin"
+        cancelLabel="Not Yet"
+        onConfirm={confirmInterventionStart}
+        onCancel={() => setShowInterventionStart(false)}
       />
     </SafeAreaView>
   );

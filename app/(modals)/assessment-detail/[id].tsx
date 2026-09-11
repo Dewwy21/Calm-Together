@@ -11,6 +11,7 @@ import { useBaselineAssessmentContext } from '../../../src/features/baselineAsse
 import { computePssScore, computePaqSubscales } from '../../../src/features/baselineAssessment/scoring';
 import { BaselinePssScoreCard } from '../../../src/features/baselineAssessment/BaselinePssScoreCard';
 import { BaselineRadarChart } from '../../../src/features/baselineAssessment/BaselineRadarChart';
+import { CHECKPOINT_LABELS, resolveTimepoint } from '../../../src/features/baselineAssessment/checkpoints';
 
 export default function AssessmentDetailScreen() {
   const { id, justCompleted } = useLocalSearchParams<{ id: string; justCompleted?: string }>();
@@ -32,6 +33,7 @@ export default function AssessmentDetailScreen() {
   const completedAt = new Date(record.completedAtISO);
   const pssScore = computePssScore(record.answers);
   const paqSubscales = computePaqSubscales(record.answers);
+  const checkpointLabel = CHECKPOINT_LABELS[resolveTimepoint(record)];
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: color.background }}>
@@ -39,7 +41,7 @@ export default function AssessmentDetailScreen() {
         {!justCompleted && <BackButton onPress={() => router.back()} />}
         <View style={{ marginLeft: justCompleted ? 0 : spacing.sm }}>
           <Text style={[typography.h1, { color: color.textPrimary }]}>
-            {justCompleted ? 'Your Results' : 'Baseline Assessment'}
+            {justCompleted ? 'Your Results' : checkpointLabel}
           </Text>
           <Text style={[typography.bodySmall, { color: color.textSecondary }]}>
             {completedAt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })} ·{' '}

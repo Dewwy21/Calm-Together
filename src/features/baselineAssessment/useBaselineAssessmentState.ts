@@ -3,7 +3,7 @@ import { useProfilesContext } from '../profiles/ProfilesProvider';
 import { useAuthContext } from '../auth/AuthProvider';
 import { createId } from '../logEvent/eventStorage';
 import { loadBaselineAssessments, persistBaselineAssessments } from './baselineAssessmentStorage';
-import { BaselineAssessmentRecord } from './types';
+import { AssessmentTimepoint, BaselineAssessmentRecord } from './types';
 import { OnboardingAnswers } from '../onboarding/types';
 
 export function useBaselineAssessmentState() {
@@ -56,10 +56,15 @@ export function useBaselineAssessmentState() {
   // loaded for this child yet either) so this is correct regardless of
   // render timing. Appends only — never overwrites or removes a previous
   // record, so every attempt stays in Assessment History.
-  async function submitAssessment(childId: string, answers: OnboardingAnswers): Promise<string> {
+  async function submitAssessment(
+    childId: string,
+    answers: OnboardingAnswers,
+    timepoint: AssessmentTimepoint = 'baseline'
+  ): Promise<string> {
     const record: BaselineAssessmentRecord = {
       id: createId(),
       childId,
+      timepoint,
       completedAtISO: new Date().toISOString(),
       answers,
       completedByName: currentUser?.name,

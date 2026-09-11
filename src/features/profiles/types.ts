@@ -31,6 +31,14 @@ export interface ChildProfile {
   hasSiblings?: boolean;
   archived: boolean;
   createdAtISO: string;
+  /**
+   * Set the first time this child's caregiver opens any lesson (see
+   * app/(modals)/courses/[courseId]/[lessonId].tsx) — the start of the
+   * 28-day intervention window that Day 14/28 Baseline Assessment
+   * checkpoints are calculated from (see baselineAssessment/checkpoints.ts).
+   * Unset until then; never reset by a retake.
+   */
+  interventionStartDateISO?: string;
 }
 
 export type ChildProfileInput = Omit<ChildProfile, 'id' | 'archived' | 'createdAtISO'>;

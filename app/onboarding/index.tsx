@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../src/theme';
 import { Button, ProgressBar } from '../../src/components/ui';
 import { ONBOARDING_STEPS } from '../../src/features/onboarding/steps';
@@ -19,10 +19,21 @@ import { ageRangeLabel, adhdStatusLabel } from '../../src/features/profiles/prof
 import { useBlueprintContext } from '../../src/features/blueprint/BlueprintProvider';
 import { buildOnboardingSummary } from '../../src/features/blueprint/onboardingSummary';
 import { useBaselineAssessmentContext } from '../../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { AssessmentTimepoint } from '../../src/features/baselineAssessment/types';
+
+const VALID_TIMEPOINTS: AssessmentTimepoint[] = ['baseline', 'day14', 'day28'];
 
 export default function OnboardingScreen() {
   const { color, spacing, typography } = useTheme();
   const router = useRouter();
+  const { timepoint: timepointParam } = useLocalSearchParams<{ timepoint?: string }>();
+  // Same wizard, same questions, same scoring for every checkpoint — only
+  // which `timepoint` gets stamped onto the saved record differs. Falls
+  // back to 'baseline' for the normal first-time-setup/retake route, which
+  // never passes this param.
+  const timepoint: AssessmentTimepoint = VALID_TIMEPOINTS.includes(timepointParam as AssessmentTimepoint)
+    ? (timepointParam as AssessmentTimepoint)
+    : 'baseline';
   const profiles = useProfilesContext();
   const blueprint = useBlueprintContext();
   const baselineAssessment = useBaselineAssessmentContext();
@@ -91,7 +102,7 @@ export default function OnboardingScreen() {
     await persistOnboardingAnswers(answers);
     await persistOnboardingStatus('completed');
     const childId = ensureFirstChild();
-    const recordId = await baselineAssessment.submitAssessment(childId, answers);
+    const recordId = await baselineAssessment.submitAssessment(childId, answers, timepoint);
     router.replace(`/(modals)/assessment-detail/${recordId}?justCompleted=1`);
   }
 

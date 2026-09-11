@@ -7,6 +7,7 @@ import { CloseButton, IconBubble } from '../../src/components/ui';
 import { Mascot } from '../../src/components/Mascot';
 import { ChartIcon } from '../../src/components/icons';
 import { useBaselineAssessmentContext } from '../../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { CHECKPOINT_LABELS, resolveTimepoint } from '../../src/features/baselineAssessment/checkpoints';
 
 export default function AssessmentHistoryScreen() {
   const { color, spacing, typography, radii, shadows } = useTheme();
@@ -39,9 +40,8 @@ export default function AssessmentHistoryScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-          {assessments.map((record, index) => {
+          {assessments.map((record) => {
             const completedAt = new Date(record.completedAtISO);
-            const isFirst = index === assessments.length - 1;
             return (
               <Pressable
                 key={record.id}
@@ -61,11 +61,11 @@ export default function AssessmentHistoryScreen() {
                 <IconBubble icon={ChartIcon} color={color.primaryTint} size={44} />
                 <View style={{ flex: 1 }}>
                   <Text style={[typography.bodyEmphasis, { color: color.textPrimary }]}>
-                    {completedAt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                    {CHECKPOINT_LABELS[resolveTimepoint(record)]}
                   </Text>
                   <Text style={[typography.caption, { color: color.textSecondary }]}>
+                    {completedAt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })} ·{' '}
                     {completedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                    {isFirst ? ' · First attempt' : ''}
                     {record.completedByName ? ` · ${record.completedByName}` : ''}
                   </Text>
                 </View>
