@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SimulatorMessage, SimulatorScenario, SimulatorCoaching } from './types';
 import { getChildReply, getCoachingSummary } from '../ai/simulatorEngine';
 import { createId } from '../logEvent/eventStorage';
@@ -7,6 +7,7 @@ import { useBlueprintContext } from '../blueprint/BlueprintProvider';
 import { serializeBlueprintSections } from '../blueprint/blueprintHelpers';
 import { SafetyTriggeredError } from '../aiEngine/safetyError';
 import { getSafetyResponse } from '../aiEngine/safetyTriage';
+import { loadSimulatorSessions, persistSimulatorSessions } from './simulatorHistoryStorage';
 
 export type SimulatorStatus = 'active' | 'thinking' | 'replyFailed' | 'coaching' | 'coachingFailed' | 'finished' | 'safety';
 
@@ -16,6 +17,7 @@ export function useSimulatorState(scenario: SimulatorScenario, child: ChildProfi
   const [status, setStatus] = useState<SimulatorStatus>('active');
   const [coaching, setCoaching] = useState<SimulatorCoaching | null>(null);
   const [safetyText, setSafetyText] = useState<string | null>(null);
+  const startedAtRef = useRef(new Date().toISOString());
 
   async function requestChildReply(history: SimulatorMessage[]) {
     setStatus('thinking');
@@ -64,6 +66,21 @@ export function useSimulatorState(scenario: SimulatorScenario, child: ChildProfi
         'simulator',
         `Scenario: ${scenario.title}.\nTranscript:\n${transcript}\n\nCoaching given — what worked: ${result.whatWorked.join('; ')}. Try next time: ${result.tryNextTime.join('; ')}.`
       );
+      if (child) {
+        const existing = await loadSimulatorSessions(child.id);
+        await persistSimulatorSessions(child.id, [
+          ...existing,
+          {
+            id: createId(),
+            childId: child.id,
+            scenarioId: scenario.id,
+            startedAtISO: startedAtRef.current,
+            completedAtISO: new Date().toISOString(),
+            messages,
+            coaching: result,
+          },
+        ]);
+      }
     } catch {
       setStatus('coachingFailed');
     }

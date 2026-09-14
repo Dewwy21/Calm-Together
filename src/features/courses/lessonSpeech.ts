@@ -27,6 +27,10 @@ export function cardToSpeechText(card: LessonCard): string {
       return `${card.heading}. ${card.situation} Options: ${card.options.map((o) => o.text).join(', ')}.`;
     case 'sequence':
       return `${card.heading}. ${card.instructions ?? ''} Put these in order: ${card.items.join(', ')}.`;
+    case 'media':
+      return card.sourceUrl
+        ? `${card.title}.${card.caption ? ` ${card.caption}` : ''}`
+        : `${card.title}. This ${card.mediaType} isn't available yet.`;
     default: {
       // If this ever fails to typecheck, a new LessonCardKind was added
       // without a case here — add one instead of widening this type.

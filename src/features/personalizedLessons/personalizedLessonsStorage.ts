@@ -11,19 +11,31 @@ const STORAGE_KEY = 'otter-companion/personalized-lessons';
 const MAX_STORED_LESSONS = 50;
 const EMPTY: PersonalizedLessonsData = { lessons: [], dismissedSuggestionTopics: [] };
 
-export async function loadPersonalizedLessonsData(): Promise<PersonalizedLessonsData> {
+// Was a single global key (no childId) — migrates any data found there onto
+// the requesting child's own key, once, the first time it's asked for. See
+// courseProgressStorage.ts's loadCourseProgress for the same pattern.
+export async function loadPersonalizedLessonsData(childId: string): Promise<PersonalizedLessonsData> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY;
-    return { ...EMPTY, ...JSON.parse(raw) } as PersonalizedLessonsData;
+    const scopedKey = `${STORAGE_KEY}/${childId}`;
+    const raw = await AsyncStorage.getItem(scopedKey);
+    if (raw) return { ...EMPTY, ...JSON.parse(raw) } as PersonalizedLessonsData;
+
+    const legacy = await AsyncStorage.getItem(STORAGE_KEY);
+    if (legacy) {
+      await AsyncStorage.setItem(scopedKey, legacy);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      return { ...EMPTY, ...JSON.parse(legacy) } as PersonalizedLessonsData;
+    }
+
+    return EMPTY;
   } catch {
     return EMPTY;
   }
 }
 
-export async function persistPersonalizedLessonsData(data: PersonalizedLessonsData): Promise<void> {
+export async function persistPersonalizedLessonsData(childId: string, data: PersonalizedLessonsData): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, lessons: data.lessons.slice(-MAX_STORED_LESSONS) }));
+    await AsyncStorage.setItem(`${STORAGE_KEY}/${childId}`, JSON.stringify({ ...data, lessons: data.lessons.slice(-MAX_STORED_LESSONS) }));
   } catch {
     // best-effort local persistence only
   }

@@ -23,7 +23,8 @@ export type LessonCardKind =
   | 'reflection'
   | 'exercise'
   | 'scenario'
-  | 'sequence';
+  | 'sequence'
+  | 'media';
 
 interface LessonCardBase {
   id: string;
@@ -137,6 +138,24 @@ export interface SequenceCard extends LessonCardBase {
   items: string[];
 }
 
+/**
+ * A video or audio moment in a lesson. `sourceUrl` is intentionally
+ * nullable — author the card with `sourceUrl: null` as a placeholder
+ * before the real media exists, and it renders a clear "media coming
+ * soon" state instead of a broken player. Fill it in later (a YouTube
+ * link/ID, or a direct file URL from any external host) without touching
+ * anything else about the lesson. See mediaSources.ts for exactly what
+ * `sourceUrl` accepts for each `mediaType`, and courseData.ts's top
+ * comment for a copy-paste example.
+ */
+export interface MediaCard extends LessonCardBase {
+  kind: 'media';
+  mediaType: 'video' | 'audio';
+  title: string;
+  sourceUrl: string | null;
+  caption?: string;
+}
+
 export type LessonCard =
   | IntroCard
   | ConceptCard
@@ -149,7 +168,8 @@ export type LessonCard =
   | ReflectionCard
   | ExerciseCard
   | ScenarioCard
-  | SequenceCard;
+  | SequenceCard
+  | MediaCard;
 
 // --- Content-authoring contract -------------------------------------------
 // A course is just `Course` + `Lesson[]` of plain typed data (see

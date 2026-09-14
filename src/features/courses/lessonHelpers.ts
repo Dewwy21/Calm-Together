@@ -34,6 +34,8 @@ function cardToReferenceText(card: LessonCard): string {
         .join(' | ')}`;
     case 'sequence':
       return `[Correct order: ${card.heading}] ${card.instructions ?? ''} ${card.items.map((s, i) => `${i + 1}. ${s}`).join(' ')}`;
+    case 'media':
+      return `[${card.mediaType === 'video' ? 'Video' : 'Audio'}: ${card.title}]${card.caption ? ` ${card.caption}` : ''}${card.sourceUrl ? '' : ' (not yet available)'}`;
     default: {
       const _exhaustive: never = card;
       return _exhaustive;

@@ -22,3 +22,14 @@ export interface SimulatorCoaching {
   framework: string | null;
   includeDisclaimer: boolean;
 }
+
+/** One completed practice session — saved once coaching is generated (see useSimulatorState.ts's endSession). */
+export interface SimulatorSessionRecord {
+  id: string;
+  childId: string;
+  scenarioId: ScenarioId;
+  startedAtISO: string;
+  completedAtISO: string;
+  messages: SimulatorMessage[];
+  coaching: SimulatorCoaching;
+}

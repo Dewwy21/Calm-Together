@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, Linking } from 'react-native';
 import { useTheme } from '../../theme';
 import { IconBubble } from '../../components/ui';
-import { CheckIcon, ArrowRightIcon, StarIcon, ChatIcon } from '../../components/icons';
-import { LessonCard, SequenceCard } from './types';
+import { CheckIcon, ArrowRightIcon, StarIcon, ChatIcon, HeadphonesIcon } from '../../components/icons';
+import { LessonCard, SequenceCard, MediaCard } from './types';
 import { seededShuffle } from '../../utils/seededPick';
+import { resolveVideoWatchUrl, resolveVideoThumbnailUrl } from './mediaSources';
+import { useLessonMediaAudio } from './useLessonMediaAudio';
 
 const KIND_LABELS: Record<LessonCard['kind'], string> = {
   intro: 'START HERE',
@@ -19,6 +21,7 @@ const KIND_LABELS: Record<LessonCard['kind'], string> = {
   exercise: 'TRY THIS TODAY',
   scenario: 'WHAT WOULD YOU DO?',
   sequence: 'PUT IN ORDER',
+  media: 'WATCH & LISTEN',
 };
 
 interface LessonCardViewProps {
@@ -289,7 +292,91 @@ export function LessonCardView({
           onReset={onResetSequence}
         />
       )}
+
+      {card.kind === 'media' && <MediaCardBody card={card} accentColor={accentColor} accentTint={accentTint} />}
     </View>
+  );
+}
+
+// A video opens externally (Linking.openURL) rather than embedding an
+// inline player — this app has no WebView/native video dependency, and
+// adding one just for this would be a bigger change than the media system
+// itself needs to be. Audio plays inline: expo-audio's useAudioPlayer
+// already accepts a remote URL directly (same dependency Calm Corner's
+// ambient track already uses), so no new dependency there. Pulled into its
+// own component, like SequenceCardBody above, so useLessonMediaAudio's
+// hook is only mounted while a media card is actually showing.
+function MediaCardBody({ card, accentColor, accentTint }: { card: MediaCard; accentColor: string; accentTint: string }) {
+  const { color, spacing, typography, radii } = useTheme();
+  const audio = useLessonMediaAudio(card.mediaType === 'audio' ? card.sourceUrl : null);
+
+  if (!card.sourceUrl) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
+        <IconBubble icon={card.mediaType === 'audio' ? HeadphonesIcon : ChatIcon} color={accentTint} size={56} />
+        <Text style={[typography.h3, { color: color.textPrimary, textAlign: 'center' }]}>{card.title}</Text>
+        <Text style={[typography.bodySmall, { color: color.textSecondary, textAlign: 'center' }]}>
+          This {card.mediaType} is on its way — check back soon.
+        </Text>
+      </View>
+    );
+  }
+
+  if (card.mediaType === 'audio') {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
+        <Pressable
+          onPress={audio.toggle}
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: radii.pill,
+            backgroundColor: accentColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: color.textOnPrimary, fontSize: 26 }}>{audio.isPlaying ? '❙❙' : '▶'}</Text>
+        </Pressable>
+        <Text style={[typography.h3, { color: color.textPrimary, textAlign: 'center' }]}>{card.title}</Text>
+        {!!card.caption && <Text style={[typography.bodySmall, { color: color.textSecondary, textAlign: 'center' }]}>{card.caption}</Text>}
+      </View>
+    );
+  }
+
+  const thumbnailUrl = resolveVideoThumbnailUrl(card.sourceUrl);
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(resolveVideoWatchUrl(card.sourceUrl!))}
+      style={{ flex: 1, gap: spacing.md, justifyContent: 'center' }}
+    >
+      <View
+        style={{
+          borderRadius: radii.lg,
+          overflow: 'hidden',
+          backgroundColor: accentTint,
+          aspectRatio: 16 / 9,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {thumbnailUrl && <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%', position: 'absolute' }} />}
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: radii.pill,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 22, marginLeft: 3 }}>▶</Text>
+        </View>
+      </View>
+      <Text style={[typography.h3, { color: color.textPrimary, textAlign: 'center' }]}>{card.title}</Text>
+      {!!card.caption && <Text style={[typography.bodySmall, { color: color.textSecondary, textAlign: 'center' }]}>{card.caption}</Text>}
+    </Pressable>
   );
 }
 

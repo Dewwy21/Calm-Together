@@ -15,16 +15,17 @@ import { FamilyContextInput } from './familyContext';
 // once, without editing every individual AI call site.
 export function useFamilyContextInput(): FamilyContextInput {
   const den = useDenContext();
-  const { currentChild } = useProfilesContext();
+  const { currentChild, currentChildId } = useProfilesContext();
   const { blueprint } = useBlueprintContext();
   const [completedLessonTitles, setCompletedLessonTitles] = useState<string[]>([]);
 
   useEffect(() => {
-    loadCompletedLessonIds().then((ids) => {
+    if (!currentChildId) return;
+    loadCompletedLessonIds(currentChildId).then((ids) => {
       const titles = ids.map((id) => getParentLessonById(id)?.title).filter((t): t is string => !!t);
       setCompletedLessonTitles(titles);
     });
-  }, []);
+  }, [currentChildId]);
 
   return {
     child: currentChild,

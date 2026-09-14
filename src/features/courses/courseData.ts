@@ -5,6 +5,23 @@ import { ORGANIZATION_LESSONS } from './lessons/organizationLessons';
 import { LISTENING_LESSONS } from './lessons/listeningLessons';
 import { SOCIAL_LESSONS } from './lessons/socialLessons';
 
+// --- Adding a video or audio moment to a lesson ---------------------------
+// Insert a 'media' card anywhere in a lesson's `cards` array (see
+// lessons/tantrumsLessons.ts etc. for the buildLesson() call sites) — it's
+// just another card kind, same as 'quiz' or 'concept':
+//
+//   { kind: 'media', mediaType: 'video', title: 'See it in action',
+//     sourceUrl: null, caption: 'A 2-minute walkthrough' }
+//
+// `sourceUrl: null` renders a clean "coming soon" placeholder — swap in a
+// real URL later with no other changes needed:
+//   - Video: a full YouTube URL (youtube.com/watch?v=..., youtu.be/...),
+//     or a bare 11-character YouTube video ID. Opens in YouTube/the
+//     browser on tap — there's no embedded in-app player.
+//   - Audio: any direct HTTPS file URL (e.g. a link from external file
+//     storage once that's set up) — plays inline in the lesson.
+// See mediaSources.ts for exactly how each sourceUrl is resolved.
+
 export const COURSES: Course[] = [
   {
     id: 'tantrums',

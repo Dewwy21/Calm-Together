@@ -11,12 +11,14 @@ import { getParentLessonById } from '../../../../src/features/connect/parentLear
 import { useSpeech } from '../../../../src/features/voice/useSpeech';
 import { MascotMoment } from '../../../../src/features/mascot/MascotMoment';
 import { markLessonCompleted } from '../../../../src/features/connect/parentLearningStorage';
+import { useProfilesContext } from '../../../../src/features/profiles/ProfilesProvider';
 
 export default function ParentLessonScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const { color, spacing, typography, radii } = useTheme();
   const router = useRouter();
   const speech = useSpeech();
+  const { currentChildId } = useProfilesContext();
   const [finished, setFinished] = useState(false);
 
   const lesson = getParentLessonById(lessonId);
@@ -39,7 +41,7 @@ export default function ParentLessonScreen() {
       speech.speak(`${lesson!.otterIntro}\n\n${lesson!.script}`, {
         onFinish: () => {
           setFinished(true);
-          markLessonCompleted(lesson!.id);
+          if (currentChildId) markLessonCompleted(currentChildId, lesson!.id);
         },
       });
     }

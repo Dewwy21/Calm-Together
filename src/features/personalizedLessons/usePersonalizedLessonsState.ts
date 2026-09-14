@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useProfilesContext } from '../profiles/ProfilesProvider';
 import {
   PersonalizedLessonsData,
   loadPersonalizedLessonsData,
@@ -7,22 +8,24 @@ import {
 import { hydrateLesson, dehydrateLesson } from './hydrate';
 import { PersonalizedLesson } from './types';
 
+const EMPTY: PersonalizedLessonsData = { lessons: [], dismissedSuggestionTopics: [] };
+
 export function usePersonalizedLessonsState() {
-  const [data, setData] = useState<PersonalizedLessonsData>({ lessons: [], dismissedSuggestionTopics: [] });
+  const { currentChildId } = useProfilesContext();
+  const [data, setData] = useState<PersonalizedLessonsData>(EMPTY);
   const [loaded, setLoaded] = useState(false);
 
+  // Read-only — writes happen explicitly inside each mutator below, scoped
+  // to whichever child is current at call time (see courseProgress's
+  // useCourseProgress.ts for why this replaced a reactive persist effect).
   useEffect(() => {
-    loadPersonalizedLessonsData().then((stored) => {
+    if (!currentChildId) return;
+    setLoaded(false);
+    loadPersonalizedLessonsData(currentChildId).then((stored) => {
       setData(stored);
       setLoaded(true);
     });
-  }, []);
-
-  useEffect(() => {
-    if (loaded) {
-      persistPersonalizedLessonsData(data);
-    }
-  }, [data, loaded]);
+  }, [currentChildId]);
 
   const lessons = useMemo(
     () => [...data.lessons].reverse().map(hydrateLesson),
@@ -34,19 +37,25 @@ export function usePersonalizedLessonsState() {
   }
 
   function addLesson(lesson: PersonalizedLesson) {
-    setData((prev) => ({ ...prev, lessons: [...prev.lessons, dehydrateLesson(lesson)] }));
+    if (!currentChildId) return;
+    const next: PersonalizedLessonsData = { ...data, lessons: [...data.lessons, dehydrateLesson(lesson)] };
+    setData(next);
+    persistPersonalizedLessonsData(currentChildId, next);
   }
 
   function removeLesson(lessonId: string) {
-    setData((prev) => ({ ...prev, lessons: prev.lessons.filter((l) => l.id !== lessonId) }));
+    if (!currentChildId) return;
+    const next: PersonalizedLessonsData = { ...data, lessons: data.lessons.filter((l) => l.id !== lessonId) };
+    setData(next);
+    persistPersonalizedLessonsData(currentChildId, next);
   }
 
   function dismissSuggestionTopic(topic: string) {
-    setData((prev) =>
-      prev.dismissedSuggestionTopics.includes(topic)
-        ? prev
-        : { ...prev, dismissedSuggestionTopics: [...prev.dismissedSuggestionTopics, topic] }
-    );
+    if (!currentChildId) return;
+    if (data.dismissedSuggestionTopics.includes(topic)) return;
+    const next: PersonalizedLessonsData = { ...data, dismissedSuggestionTopics: [...data.dismissedSuggestionTopics, topic] };
+    setData(next);
+    persistPersonalizedLessonsData(currentChildId, next);
   }
 
   return {

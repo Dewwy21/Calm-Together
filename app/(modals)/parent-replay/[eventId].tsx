@@ -33,6 +33,17 @@ export default function ParentReplayScreen() {
 
   useEffect(() => {
     if (!event) return;
+
+    // Generated once per event, same as AI Reflections — cached onto the
+    // event record (see SavedParentReplay in logEvent/types.ts) so leaving
+    // this screen and coming back doesn't lose it or spend another AI call
+    // regenerating it. "Try Again" after an error still regenerates fresh.
+    if (event.parentReplay && attempt === 0) {
+      setResult(event.parentReplay);
+      setStatus('ready');
+      return;
+    }
+
     let cancelled = false;
     setStatus('loading');
     generateParentReplay(event, familyContext, preferences.therapistMode)
@@ -40,6 +51,7 @@ export default function ParentReplayScreen() {
         if (cancelled) return;
         setResult(r);
         setStatus('ready');
+        den.updateEvent(event.id, { ...event, parentReplay: { ...r, generatedAtISO: new Date().toISOString() } });
         const moments = r.keyMoments.map((m) => `Alternative: "${m.alternative}" — ${m.reasoning}`).join('\n');
         noteInteraction('parentReplay', `Reviewed a Parent Replay of a ${event.eventType} (intensity ${event.intensity}/10): ${event.whatHappened}\n\nKey moments identified:\n${moments}`);
       })

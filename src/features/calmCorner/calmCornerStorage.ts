@@ -18,22 +18,36 @@ export interface CalmCornerData {
 }
 
 const STORAGE_KEY = 'otter-companion/calm-corner';
-const MAX_USAGE_LOG = 365;
 const EMPTY: CalmCornerData = { favoriteIds: [], recentlyUsed: [], usageLog: [] };
 
-export async function loadCalmCornerData(): Promise<CalmCornerData> {
+// Was a single global key (no childId) — meaning usageLog mixed every
+// child's Calm Corner history together, undermining the per-child pattern
+// correlation it exists for. Migrates any data found under the old key
+// onto the requesting child's own key, once, the first time it's asked
+// for. See courseProgressStorage.ts's loadCourseProgress for the same
+// pattern.
+export async function loadCalmCornerData(childId: string): Promise<CalmCornerData> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY;
-    return { ...EMPTY, ...JSON.parse(raw) } as CalmCornerData;
+    const scopedKey = `${STORAGE_KEY}/${childId}`;
+    const raw = await AsyncStorage.getItem(scopedKey);
+    if (raw) return { ...EMPTY, ...JSON.parse(raw) } as CalmCornerData;
+
+    const legacy = await AsyncStorage.getItem(STORAGE_KEY);
+    if (legacy) {
+      await AsyncStorage.setItem(scopedKey, legacy);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      return { ...EMPTY, ...JSON.parse(legacy) } as CalmCornerData;
+    }
+
+    return EMPTY;
   } catch {
     return EMPTY;
   }
 }
 
-export async function persistCalmCornerData(data: CalmCornerData): Promise<void> {
+export async function persistCalmCornerData(childId: string, data: CalmCornerData): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    await AsyncStorage.setItem(`${STORAGE_KEY}/${childId}`, JSON.stringify(data));
   } catch {
     // best-effort local persistence only
   }
