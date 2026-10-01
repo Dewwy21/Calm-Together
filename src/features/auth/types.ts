@@ -2,12 +2,18 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  // Plain-text storage is intentional here, not an oversight — this app is
-  // an explicitly local-only research prototype with no real backend and
-  // no real security requirement (per the caregiver's own instructions).
-  // Never copy this pattern into a product that handles real credentials.
-  password: string;
+  // Never the raw password — see passwordHashing.ts. Salted + iterated
+  // SHA-256, the strongest option available without a backend or a native
+  // KDF library.
+  passwordSalt: string;
+  passwordHash: string;
   createdAtISO: string;
+  // Email verification (research-prototype grade — see verificationEmailClient.ts
+  // for the security tradeoffs). verificationCode/verificationCodeCreatedAt are
+  // cleared back to null once verified, since they serve no purpose afterward.
+  emailVerified: boolean;
+  verificationCode: string | null;
+  verificationCodeCreatedAt: string | null;
 }
 
 export interface AuthActionResult {

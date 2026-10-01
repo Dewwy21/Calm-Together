@@ -49,6 +49,7 @@ export const helpBotEngine: HelpBotEngine = {
         isCrisisResponse: true,
         framework: null,
         interventionType: null,
+        actProcessesUsed: [],
         includeDisclaimer: false,
         safetyCategory: safety.category,
       };
@@ -97,6 +98,7 @@ export const helpBotEngine: HelpBotEngine = {
         isCrisisResponse: false,
         framework: parsed.framework,
         interventionType: parsed.interventionType,
+        actProcessesUsed: parsed.actProcessesUsed,
         includeDisclaimer: parsed.includeDisclaimer,
         safetyCategory: 'none',
       };
@@ -110,6 +112,7 @@ export const helpBotEngine: HelpBotEngine = {
         isCrisisResponse: false,
         framework: null,
         interventionType: null,
+        actProcessesUsed: [],
         includeDisclaimer: false,
         safetyCategory: 'none',
       };

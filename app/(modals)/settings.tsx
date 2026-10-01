@@ -27,8 +27,9 @@ export default function SettingsScreen() {
   const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus>('not_started');
 
   useEffect(() => {
-    loadOnboardingStatus().then(setOnboardingStatus);
-  }, []);
+    if (!currentUser) return;
+    loadOnboardingStatus(currentUser.id).then(setOnboardingStatus);
+  }, [currentUser]);
 
   function checkpointStatusLabel(timepoint: 'day14' | 'day28'): string {
     const status = getCheckpointStatus(currentChild?.interventionStartDateISO, assessments, timepoint);

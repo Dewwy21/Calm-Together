@@ -12,9 +12,12 @@ import { DateTimeStep } from '../../src/features/logEvent/DateTimeStep';
 import { IntensityStep } from '../../src/features/logEvent/IntensityStep';
 import { DurationStep } from '../../src/features/logEvent/DurationStep';
 import { QuestionStep } from '../../src/features/logEvent/QuestionStep';
+import { DailyStressStep } from '../../src/features/logEvent/DailyStressStep';
+import { ActSkillStep } from '../../src/features/logEvent/ActSkillStep';
 import { ReflectionPrompts } from '../../src/features/logEvent/ReflectionPrompts';
 import { QuestionConfig, getQuestionSteps } from '../../src/features/logEvent/questionConfig';
 import { EventType, LoggedEvent } from '../../src/features/logEvent/types';
+import { ActSkillId, actSkillLabel } from '../../src/features/logEvent/actSkillOptions';
 import { createId } from '../../src/features/logEvent/eventStorage';
 import { useBlueprintContext } from '../../src/features/blueprint/BlueprintProvider';
 import { getSubtypeLabel } from '../../src/features/logEvent/subtypeOptions';
@@ -69,6 +72,14 @@ export default function LogEventScreen() {
   const [timeDescription, setTimeDescription] = useState(existingEvent?.timeDescription ?? '');
   const [intensity, setIntensity] = useState(existingEvent?.intensity ?? 5);
   const [durationLabel, setDurationLabel] = useState(existingEvent?.durationLabel ?? '');
+  // The four standardized daily check-in questions — asked at the end of
+  // every entry regardless of eventType, in addition to the type-specific
+  // fields above (see types.ts's comment on these fields for why they're
+  // kept separate rather than merged into any existing field).
+  const [dailyStressScore, setDailyStressScore] = useState<number | null>(existingEvent?.dailyStressScore ?? null);
+  const [dailyNote, setDailyNote] = useState(existingEvent?.dailyNote ?? '');
+  const [actSkillsUsed, setActSkillsUsed] = useState<ActSkillId[]>(existingEvent?.actSkillsUsed ?? []);
+  const [valuesAlignedMoment, setValuesAlignedMoment] = useState(existingEvent?.valuesAlignedMoment ?? '');
   const [answers, setAnswers] = useState<Answers>(
     existingEvent
       ? {
@@ -98,11 +109,18 @@ export default function LogEventScreen() {
   const isPositiveMoment = eventType === 'positiveMoment';
   const questionSteps = getQuestionSteps(eventType ?? 'meltdown');
   const questionStartStep = isPositiveMoment ? QUESTION_START_STEP_POSITIVE : QUESTION_START_STEP_CHALLENGE;
-  const totalFormSteps = questionStartStep + questionSteps.length;
+  // The four daily check-in steps always come last, after whichever
+  // type-specific questions this eventType asks.
+  const dailyStepStart = questionStartStep + questionSteps.length;
+  const totalFormSteps = dailyStepStart + 4;
   const requiredQuestionKey = questionSteps.find((q) => q.requiredForSave)?.key;
 
   const canProceedFromStep0 = eventType !== null;
-  const canSave = eventType !== null && !!requiredQuestionKey && answers[requiredQuestionKey].trim().length > 0;
+  const canSave =
+    eventType !== null &&
+    !!requiredQuestionKey &&
+    answers[requiredQuestionKey].trim().length > 0 &&
+    dailyStressScore !== null;
   const isLastFormStep = step === totalFormSteps - 1;
 
   function updateAnswer(key: keyof Answers, value: string) {
@@ -123,22 +141,35 @@ export default function LogEventScreen() {
 
   function dailyLogSummary(event: LoggedEvent): string {
     const subtypeLabel = getSubtypeLabel(event.eventType, event.subtype);
+    let lines: string[];
     if (event.eventType === 'positiveMoment') {
-      const lines = [
+      lines = [
         `Logged a Positive Moment${subtypeLabel ? ` (${subtypeLabel})` : ''}.`,
         `What made it meaningful: ${event.meaningfulMoment}`,
       ];
       if (event.childStrength) lines.push(`What the child did well: ${event.childStrength}`);
       if (event.caregiverContribution) lines.push(`What the caregiver did to help create it: ${event.caregiverContribution}`);
       if (event.repeatStrategy) lines.push(`How to create more moments like this: ${event.repeatStrategy}`);
-      return lines.join('\n');
+    } else {
+      lines = [
+        `Logged a ${event.eventType}${subtypeLabel ? ` (${subtypeLabel})` : ''}, intensity ${event.intensity}/10.`,
+        `What happened: ${event.whatHappened}`,
+      ];
+      if (event.before) lines.push(`Right before: ${event.before}`);
+      if (event.consequences) lines.push(`What happened next: ${event.consequences}`);
     }
-    const lines = [
-      `Logged a ${event.eventType}${subtypeLabel ? ` (${subtypeLabel})` : ''}, intensity ${event.intensity}/10.`,
-      `What happened: ${event.whatHappened}`,
-    ];
-    if (event.before) lines.push(`Right before: ${event.before}`);
-    if (event.consequences) lines.push(`What happened next: ${event.consequences}`);
+
+    // The four standardized daily check-in answers, called out as their own
+    // clearly-labeled block — these are the consistent, comparable answers
+    // (asked the same way on every entry) that AI features reading Family
+    // Blueprint history should track for intervention progress, distinct
+    // from the type-specific narrative above.
+    lines.push('--- Daily check-in ---');
+    lines.push(`Overall daily stress (1-7): ${event.dailyStressScore ?? 'not answered'}`);
+    if (event.dailyNote) lines.push(`Anything come up today: ${event.dailyNote}`);
+    lines.push(`ACT skill(s) used: ${event.actSkillsUsed?.length ? event.actSkillsUsed.map(actSkillLabel).join(', ') : 'none logged'}`);
+    if (event.valuesAlignedMoment) lines.push(`Values-aligned moment: ${event.valuesAlignedMoment}`);
+
     return lines.join('\n');
   }
 
@@ -162,6 +193,8 @@ export default function LogEventScreen() {
         event.feelingReflection,
         event.memorableDetail,
         event.repeatStrategy,
+        event.dailyNote,
+        event.valuesAlignedMoment,
       ]
         .filter(Boolean)
         .join(' ')
@@ -194,6 +227,10 @@ export default function LogEventScreen() {
         intensity: resolvedIntensity,
         durationLabel: resolvedDuration,
         ...answers,
+        dailyStressScore: dailyStressScore ?? undefined,
+        dailyNote,
+        actSkillsUsed,
+        valuesAlignedMoment,
       };
       den.updateEvent(existingEvent.id, updated);
       noteBlueprintForSave(updated);
@@ -210,6 +247,10 @@ export default function LogEventScreen() {
       intensity: resolvedIntensity,
       durationLabel: resolvedDuration,
       ...answers,
+      dailyStressScore: dailyStressScore ?? undefined,
+      dailyNote,
+      actSkillsUsed,
+      valuesAlignedMoment,
       createdAtISO: new Date().toISOString(),
     };
     // The AI Reflection is generated the first time the reflection screen
@@ -292,15 +333,41 @@ export default function LogEventScreen() {
       return <DurationStep value={durationLabel} onChange={setDurationLabel} />;
     }
 
-    const question = questionSteps[step - questionStartStep];
-    return (
-      <View style={{ gap: spacing.xl }}>
+    if (step < dailyStepStart) {
+      const question = questionSteps[step - questionStartStep];
+      return (
         <QuestionStep
           title={question.title}
           placeholder={question.placeholder}
           value={answers[question.key]}
           onChange={(value) => updateAnswer(question.key, value)}
         />
+      );
+    }
+
+    // The four standardized daily check-in steps — always last, always the
+    // same regardless of eventType (see types.ts's comment on these fields).
+    const dailyStep = step - dailyStepStart;
+    return (
+      <View style={{ gap: spacing.xl }}>
+        {dailyStep === 0 && <DailyStressStep value={dailyStressScore} onChange={setDailyStressScore} />}
+        {dailyStep === 1 && (
+          <QuestionStep
+            title="Anything come up today you want to note?"
+            placeholder="A hard moment, a win, gratitude, or something that felt different..."
+            value={dailyNote}
+            onChange={setDailyNote}
+          />
+        )}
+        {dailyStep === 2 && <ActSkillStep value={actSkillsUsed} onChange={setActSkillsUsed} />}
+        {dailyStep === 3 && (
+          <QuestionStep
+            title="Was there a moment today you responded in a way that matched what matters to you, even if it was hard?"
+            placeholder="Describe the moment, if one comes to mind..."
+            value={valuesAlignedMoment}
+            onChange={setValuesAlignedMoment}
+          />
+        )}
         {isLastFormStep && <ReflectionPrompts eventType={eventType} />}
       </View>
     );

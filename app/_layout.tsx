@@ -26,6 +26,7 @@ import { CourseProgressProvider } from '../src/features/courses/CourseProgressPr
 import { PersonalizedLessonsProvider } from '../src/features/personalizedLessons/PersonalizedLessonsProvider';
 import { CheckInProvider } from '../src/features/checkIn/CheckInProvider';
 import { BaselineAssessmentProvider } from '../src/features/baselineAssessment/BaselineAssessmentProvider';
+import { retryQueuedResearchLogs } from '../src/features/research/researchLogger';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -55,6 +56,13 @@ export default function RootLayout() {
   useEffect(() => {
     onLayoutRootView();
   }, [onLayoutRootView]);
+
+  // Opportunistic retry for any research log that failed to send last
+  // session — a research prototype doesn't need a background timer for
+  // this, just another chance on the next launch. Never blocks startup.
+  useEffect(() => {
+    retryQueuedResearchLogs();
+  }, []);
 
   if (!fontsLoaded) {
     return null;

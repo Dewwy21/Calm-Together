@@ -12,6 +12,9 @@ import { TrailConnector } from '../../../../src/features/courses/TrailConnector'
 import { useCourseProgressContext } from '../../../../src/features/courses/CourseProgressProvider';
 import { usePersonalizedLessonsContext } from '../../../../src/features/personalizedLessons/PersonalizedLessonsProvider';
 import { usePatternInsights } from '../../../../src/features/patterns/usePatternInsights';
+import { useProfilesContext } from '../../../../src/features/profiles/ProfilesProvider';
+import { isLessonUnlocked, getUnlockDayForLesson } from '../../../../src/features/courses/coursePath';
+import { usePreferencesContext } from '../../../../src/features/preferences/PreferencesProvider';
 
 export default function CoursePathScreen() {
   const { courseId } = useLocalSearchParams<{ courseId: string }>();
@@ -19,6 +22,8 @@ export default function CoursePathScreen() {
   const { color, spacing, typography, radii, shadows } = theme;
   const router = useRouter();
   const progress = useCourseProgressContext();
+  const { currentChild } = useProfilesContext();
+  const { preferences } = usePreferencesContext();
 
   const course = getCourseById(courseId);
 
@@ -61,10 +66,11 @@ export default function CoursePathScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}>
         {lessons.map((lesson, i) => {
           const completed = progress.isLessonCompleted(lesson.id);
-          const previousCompleted = i === 0 || progress.isLessonCompleted(lessons[i - 1].id);
-          const locked = !completed && !previousCompleted;
+          const unlocked = isLessonUnlocked(lesson.id, currentChild?.interventionStartDateISO, preferences.unlockAllLessons);
+          const locked = !completed && !unlocked;
           const isCurrent = !completed && !locked;
           const alignRight = i % 2 === 1;
+          const unlockDay = getUnlockDayForLesson(lesson.id);
 
           return (
             <View key={lesson.id}>
@@ -99,7 +105,7 @@ export default function CoursePathScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[typography.h3, { color: color.textPrimary }]}>{lesson.title}</Text>
                     <Text style={[typography.bodySmall, { color: color.textSecondary }]} numberOfLines={2}>
-                      {locked ? 'Complete the previous lesson to unlock' : lesson.summary}
+                      {locked ? (unlockDay ? `Unlocks on Day ${unlockDay}` : 'Not available yet') : lesson.summary}
                     </Text>
                   </View>
                 </Pressable>

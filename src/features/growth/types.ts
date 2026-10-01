@@ -1,4 +1,10 @@
-export type GrowthDimensionId = 'emotionalRegulation' | 'consistency' | 'confidence' | 'communication' | 'stressRecovery';
+export type GrowthDimensionId =
+  | 'dailyParentingStress'
+  | 'emotionalRegulation'
+  | 'consistency'
+  | 'confidence'
+  | 'communication'
+  | 'stressRecovery';
 
 export interface GrowthWeekPoint {
   weekLabel: string;

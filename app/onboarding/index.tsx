@@ -20,6 +20,7 @@ import { useBlueprintContext } from '../../src/features/blueprint/BlueprintProvi
 import { buildOnboardingSummary } from '../../src/features/blueprint/onboardingSummary';
 import { useBaselineAssessmentContext } from '../../src/features/baselineAssessment/BaselineAssessmentProvider';
 import { AssessmentTimepoint } from '../../src/features/baselineAssessment/types';
+import { useAuthContext } from '../../src/features/auth/AuthProvider';
 
 const VALID_TIMEPOINTS: AssessmentTimepoint[] = ['baseline', 'day14', 'day28'];
 
@@ -37,6 +38,10 @@ export default function OnboardingScreen() {
   const profiles = useProfilesContext();
   const blueprint = useBlueprintContext();
   const baselineAssessment = useBaselineAssessmentContext();
+  const auth = useAuthContext();
+  // Onboarding is only ever reached once signed in (see app/index.tsx's
+  // redirect logic), so currentUser is always present here.
+  const accountId = auth.currentUser!.id;
 
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
@@ -92,15 +97,15 @@ export default function OnboardingScreen() {
   }
 
   async function handleSkip() {
-    await persistOnboardingAnswers(answers);
-    await persistOnboardingStatus('skipped');
+    await persistOnboardingAnswers(accountId, answers);
+    await persistOnboardingStatus(accountId, 'skipped');
     ensureFirstChild();
     router.replace('/den');
   }
 
   async function handleComplete() {
-    await persistOnboardingAnswers(answers);
-    await persistOnboardingStatus('completed');
+    await persistOnboardingAnswers(accountId, answers);
+    await persistOnboardingStatus(accountId, 'completed');
     const childId = ensureFirstChild();
     const recordId = await baselineAssessment.submitAssessment(childId, answers, timepoint);
     router.replace(`/(modals)/assessment-detail/${recordId}?justCompleted=1`);

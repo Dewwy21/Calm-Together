@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { askClaudeStructured } from '../ai/anthropicClient';
 import { assessSafety, getSafetyResponse } from '../aiEngine/safetyTriage';
+import { SafetyCategory } from '../aiEngine/types';
 import { ACT_COACH_SYSTEM_PROMPT } from './actCoachPrompt';
 
 // This is a standalone ACT coaching tool with its own carefully-authored
@@ -26,14 +27,14 @@ const actCoachResponseSchema = z.object({
 });
 
 export type ActCoachResult =
-  | { kind: 'safety'; text: string; quickReplies: string[] }
-  | { kind: 'coaching'; process: string; logic: string; response: string };
+  | { kind: 'safety'; text: string; quickReplies: string[]; category: SafetyCategory }
+  | { kind: 'coaching'; process: string; logic: string; response: string; category: SafetyCategory };
 
 export async function getActCoachingResponse(parentMessage: string): Promise<ActCoachResult> {
   const safety = assessSafety(parentMessage);
   if (safety.isSafetyEvent) {
     const safetyResponse = getSafetyResponse(safety.category);
-    return { kind: 'safety', text: safetyResponse.text, quickReplies: safetyResponse.quickReplies };
+    return { kind: 'safety', text: safetyResponse.text, quickReplies: safetyResponse.quickReplies, category: safety.category };
   }
 
   const result = await askClaudeStructured({
@@ -44,5 +45,7 @@ export async function getActCoachingResponse(parentMessage: string): Promise<Act
     thinkingEnabled: false,
   });
 
-  return { kind: 'coaching', ...result };
+  // 'none' here is deterministic, not computed by the AI — safety.isSafetyEvent
+  // was already checked false above, same as helpBotEngine.ts's identical pattern.
+  return { kind: 'coaching', ...result, category: 'none' };
 }

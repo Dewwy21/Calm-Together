@@ -42,15 +42,19 @@ export default function ForgotPasswordScreen() {
 
   function handleResetPassword() {
     setError(null);
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError("Passwords don't match.");
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       // "Always succeeds" — resetPassword itself never reveals whether the
       // email matched a real account.
-      auth.resetPassword({ email, newPassword });
+      await auth.resetPassword({ email, newPassword });
       setIsSubmitting(false);
       setToast({ text: 'Your password has been reset.', variant: 'success' });
       setTimeout(() => router.replace('/(auth)/login'), 1500);

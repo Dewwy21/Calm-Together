@@ -35,7 +35,9 @@ const DECISION_LAYER_INSTRUCTIONS = `Before writing your response, silently work
 - encouragement: they're doing fine and mainly need to hear that
 - clarifyingQuestion: you don't have enough to go on yet
 
-Record that choice in "interventionType" and one short internal sentence of why in "interventionReasoning" — these are your own reasoning trail, not shown to the caregiver verbatim. Always prioritize helping the caregiver regulate themselves before focusing on changing the child's behavior.`;
+Record that choice in "interventionType" and one short internal sentence of why in "interventionReasoning" — these are your own reasoning trail, not shown to the caregiver verbatim. Always prioritize helping the caregiver regulate themselves before focusing on changing the child's behavior.
+
+Separately, record in "actProcessesUsed" which specific ACT process(es) this response genuinely drew on — acceptance, cognitiveDefusion, presentMomentAwareness, selfAsContext, values, committedAction — or an empty array if none genuinely apply. This is for research tracking only; it doesn't change what you actually say to the caregiver.`;
 
 const DISCLAIMER_FIELD_INSTRUCTION = `Set "includeDisclaimer" to true only if this response gives real advice, a coping technique, or psychological guidance a caregiver might mistake for professional clinical guidance. Leave it false for pure validation, encouragement, small talk, or a clarifying question — it should not appear on every single response.`;
 

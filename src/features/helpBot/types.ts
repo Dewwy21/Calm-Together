@@ -1,6 +1,7 @@
 import { LoggedEvent } from '../logEvent/types';
 import { ChildProfile } from '../profiles/types';
 import { InterventionType, SafetyCategory } from '../aiEngine/types';
+import { ActSkillId } from '../logEvent/actSkillOptions';
 
 export interface HelpBotAction {
   label: string;
@@ -21,6 +22,8 @@ export interface HelpBotMessage {
   framework?: string | null;
   /** The Decision Layer's chosen response type for this turn, null for safety short-circuits and fallbacks. */
   interventionType?: InterventionType | null;
+  /** Which ACT process(es) this reply self-reported drawing on — see decisionSchema.ts's actProcessesUsed. Empty for safety short-circuits and fallbacks. */
+  actProcessesUsed?: ActSkillId[];
   /** Whether the professional-disclaimer line should render under this message (already throttled — see aiEngine/disclaimer.ts). */
   showsDisclaimer?: boolean;
   /** Set once a caregiver edits this message's text in place — the stored `text` becomes the edited version. */
@@ -62,6 +65,7 @@ export interface HelpBotResponse {
   isCrisisResponse: boolean;
   framework?: string | null;
   interventionType: InterventionType | null;
+  actProcessesUsed: ActSkillId[];
   includeDisclaimer: boolean;
   safetyCategory: SafetyCategory;
 }

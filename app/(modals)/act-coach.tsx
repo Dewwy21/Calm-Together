@@ -11,12 +11,17 @@ import { sanitizeParentMessage, MAX_MESSAGE_LENGTH } from '../../src/features/ac
 import { AiUnavailableError } from '../../src/features/ai/anthropicClient';
 import { handleComposerKeyPress } from '../../src/utils/composerKeyPress';
 import { MASCOT_POSES } from '../../src/components/Mascot';
+import { useProfilesContext } from '../../src/features/profiles/ProfilesProvider';
+import { usePreferencesContext } from '../../src/features/preferences/PreferencesProvider';
+import { logInteraction, activeModelName } from '../../src/features/research/researchLogger';
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
 
 export default function ActCoachScreen() {
   const { color, spacing, typography, radii, shadows } = useTheme();
   const router = useRouter();
+  const { currentChildId } = useProfilesContext();
+  const { preferences } = usePreferencesContext();
 
   const [inputText, setInputText] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -39,6 +44,28 @@ export default function ActCoachScreen() {
       const r = await getActCoachingResponse(message);
       setResult(r);
       setStatus('ready');
+
+      // Fire-and-forget research logging — only reachable once `r` already
+      // exists, so there's no way to log an incomplete record. Never
+      // awaited: can't delay or block the UI update above. actProcess uses
+      // r.process verbatim (e.g. "Primary: Acceptance | Secondary: Committed
+      // Action") — the system's own classification, not reformatted or
+      // reclassified for logging. severity uses r.category, the same
+      // safety-triage result the real intervention logic already acted on.
+      if (currentChildId) {
+        logInteraction({
+          sessionId: `CT_SESSION_${currentChildId}`,
+          interactionType: 'ACT AI Response',
+          feature: 'actCoach',
+          environment: preferences.researchMode === 'test' ? 'TEST' : 'REAL',
+          testCaseId: preferences.researchMode === 'test' ? preferences.activeTestCaseId : null,
+          userInput: message,
+          aiResponse: r.kind === 'coaching' ? r.response : r.text,
+          actProcess: r.kind === 'coaching' ? r.process : undefined,
+          severity: r.category,
+          model: activeModelName(),
+        });
+      }
     } catch (err) {
       setStatus('error');
       // eslint-disable-next-line no-console

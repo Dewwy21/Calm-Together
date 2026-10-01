@@ -24,8 +24,8 @@ export default function LoginScreen() {
   function handleLogIn() {
     setError(null);
     setIsSubmitting(true);
-    setTimeout(() => {
-      const result = auth.logIn({ email, password });
+    setTimeout(async () => {
+      const result = await auth.logIn({ email, password });
       setIsSubmitting(false);
       if (!result.ok) {
         setError(result.error ?? 'Something went wrong. Please try again.');

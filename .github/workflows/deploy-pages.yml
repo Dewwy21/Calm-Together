@@ -54,3 +54,30 @@ jobs:
           # instead of trying to reconcile against that unrelated history,
           # which is what a bare `git` exit-1 failure here usually means.
           force_orphan: true
+
+      # GitHub Pages project-page URLs are fully determined by the repo's
+      # own owner/name (https://<owner>.github.io/<repo>/) — not a per-deploy
+      # preview URL — so there's nothing to look up from an API, just
+      # recompute it from this run's own context every time. README.md is
+      # only touched (and only committed) if that recomputed line actually
+      # differs from what's there, so a normal deploy with no URL change
+      # produces zero commits.
+      - name: Update README with the live URL
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME="${{ github.event.repository.name }}"
+          LIVE_URL="https://${OWNER_LOWER}.github.io/${REPO_NAME}/"
+          NEW_LINE="**Live app:** ${LIVE_URL}"
+          awk -v line="$NEW_LINE" '
+            /<!-- LIVE_URL_START -->/ { print; print line; skip=1; next }
+            /<!-- LIVE_URL_END -->/ { skip=0 }
+            !skip { print }
+          ' README.md > README.md.tmp
+          mv README.md.tmp README.md
+
+      - name: Commit README if the live URL changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update live site link in README [skip ci]"
+          file_pattern: README.md
+          skip_dirty_check: false

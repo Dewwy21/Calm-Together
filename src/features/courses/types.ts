@@ -1,7 +1,21 @@
 import type { ComponentType } from 'react';
 import { IconProps } from '../../components/icons';
+import { LessonQuiz } from './quizTypes';
 
-export type CourseId = 'tantrums' | 'organization' | 'listening' | 'social' | 'personalized';
+// The 6 ACT (Acceptance and Commitment Therapy) processes plus Choice Point
+// — the 28-day program's 7 weekly topics (see coursePath.ts for how these
+// become a single Day 1-28 sequence). 'personalized' is unrelated to the
+// program — an AI-generated, on-demand library, unaffected by this
+// structure — kept as its own course exactly as before.
+export type CourseId =
+  | 'presentMomentAwareness'
+  | 'selfAsContext'
+  | 'acceptance'
+  | 'cognitiveDefusion'
+  | 'values'
+  | 'committedAction'
+  | 'choicePoint'
+  | 'personalized';
 
 export interface Course {
   id: CourseId;
@@ -198,4 +212,6 @@ export interface Lesson {
   cards: LessonCard[];
   /** Optional citation to the source material this lesson was built from, shown subtly in the lesson player when present. */
   sourceRef?: string;
+  /** Optional "Check Your Understanding" quiz — see quizTypes.ts. When present, the lesson player shows it automatically once the caregiver reaches the end of the lesson's cards, in place of "Finish Lesson". */
+  quiz?: LessonQuiz;
 }

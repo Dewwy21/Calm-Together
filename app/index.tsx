@@ -5,7 +5,7 @@ import { useAuthContext } from '../src/features/auth/AuthProvider';
 
 export default function Index() {
   const auth = useAuthContext();
-  const [destination, setDestination] = useState<'/(auth)/welcome' | '/onboarding' | '/den' | null>(null);
+  const [destination, setDestination] = useState<'/(auth)/welcome' | '/(auth)/verify-email' | '/onboarding' | '/den' | null>(null);
 
   useEffect(() => {
     if (!auth.loaded) return;
@@ -13,7 +13,11 @@ export default function Index() {
       setDestination('/(auth)/welcome');
       return;
     }
-    loadOnboardingStatus().then((status) => {
+    if (!auth.currentUser.emailVerified) {
+      setDestination('/(auth)/verify-email');
+      return;
+    }
+    loadOnboardingStatus(auth.currentUser.id).then((status) => {
       setDestination(status === 'not_started' ? '/onboarding' : '/den');
     });
   }, [auth.loaded, auth.currentUser]);

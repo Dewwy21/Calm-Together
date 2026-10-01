@@ -27,6 +27,8 @@ import { useBlueprintContext } from '../../../../src/features/blueprint/Blueprin
 import { useFamilyContextInput } from '../../../../src/features/ai/useFamilyContextInput';
 import { usePreferencesContext } from '../../../../src/features/preferences/PreferencesProvider';
 import { useSpeech } from '../../../../src/features/voice/useSpeech';
+import { isLessonUnlocked, getUnlockDayForLesson } from '../../../../src/features/courses/coursePath';
+import { LessonQuizView } from '../../../../src/features/courses/LessonQuizView';
 
 export default function LessonPlayerScreen() {
   const { courseId, lessonId } = useLocalSearchParams<{ courseId: string; lessonId: string }>();
@@ -45,6 +47,12 @@ export default function LessonPlayerScreen() {
   const course = getCourseById(courseId);
   const lesson = courseId === 'personalized' ? personalizedLessons.getById(lessonId ?? '') : getLessonById(lessonId);
   const cards = lesson?.cards ?? [];
+  // Real enforcement, not just a disabled row on the list screen — a
+  // locked lesson can't be played even via a direct/stale navigation.
+  const unlocked = lesson
+    ? isLessonUnlocked(lesson.id, profiles.currentChild?.interventionStartDateISO, preferences.unlockAllLessons)
+    : true;
+  const unlockDay = lesson ? getUnlockDayForLesson(lesson.id) : null;
 
   const scrollRef = useRef<ScrollView>(null);
   const initialIndexRef = useRef(Math.min(Math.max(progress.getCardIndex(lessonId ?? ''), 0), Math.max(cards.length - 1, 0)));
@@ -58,6 +66,7 @@ export default function LessonPlayerScreen() {
   const [finished, setFinished] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
   const [showInterventionStart, setShowInterventionStart] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   // Opening any lesson, for the first time ever, starts the 28-day
   // intervention window that Day 14/28 Baseline Assessment checkpoints are
@@ -65,10 +74,11 @@ export default function LessonPlayerScreen() {
   // one-time heads-up rather than the clock starting silently. Re-prompts
   // on the next lesson open if they dismiss without confirming.
   useEffect(() => {
-    if (profiles.loaded && profiles.currentChild && !profiles.currentChild.interventionStartDateISO) {
+    if (profiles.loaded && profiles.currentChild && !profiles.currentChild.interventionStartDateISO && unlocked) {
       setShowInterventionStart(true);
     }
-  }, [profiles.loaded, profiles.currentChild]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profiles.loaded, profiles.currentChild, unlocked]);
 
   function confirmInterventionStart() {
     if (profiles.currentChildId) {
@@ -86,8 +96,26 @@ export default function LessonPlayerScreen() {
     );
   }
 
+  if (!unlocked) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: color.background, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl }}>
+        <Text style={[typography.h2, { color: color.textPrimary, textAlign: 'center' }]}>Not available yet</Text>
+        <Text style={[typography.body, { color: color.textSecondary, textAlign: 'center' }]}>
+          {unlockDay ? `This lesson unlocks on Day ${unlockDay} of the program.` : "This lesson isn't available yet."}
+        </Text>
+        <Button label="Back" onPress={() => router.back()} />
+      </SafeAreaView>
+    );
+  }
+
   const { accentColor, accentTint } = getCourseAccent(theme, course.id);
   const isLast = index === cards.length - 1;
+  const hasQuiz = !!lesson.quiz;
+  // Lets a caregiver rewatch the lesson's video any time — from the
+  // finished screen, from the quiz results screen, or just by reopening a
+  // completed lesson — without it forcing them back through the quiz.
+  const videoCardIndex = cards.findIndex((c) => c.kind === 'media' && c.mediaType === 'video');
+  const hasVideo = videoCardIndex !== -1;
 
   function persistReflectionIfNeeded() {
     const currentCard = cards[index];
@@ -113,6 +141,26 @@ export default function LessonPlayerScreen() {
       progress.setCardIndex(lesson!.id, newIndex);
       if (voiceEnabled) speech.speak(cardToSpeechText(cards[newIndex]));
     }
+  }
+
+  function handleVideoEnded() {
+    // Already completed once before (rewatching from the finished screen,
+    // the quiz results screen, or just reopening a done lesson) — just let
+    // them watch, no forced re-navigation into the quiz or finish screen.
+    if (progress.isLessonCompleted(lesson!.id)) return;
+    if (isLast) {
+      if (hasQuiz) setShowQuiz(true);
+      else finishLesson();
+    } else {
+      goToIndex(index + 1);
+    }
+  }
+
+  function watchVideoAgain() {
+    if (!hasVideo) return;
+    setFinished(false);
+    setShowQuiz(false);
+    goToIndex(videoCardIndex);
   }
 
   function finishLesson() {
@@ -168,6 +216,7 @@ export default function LessonPlayerScreen() {
           )}
         </View>
         <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+          {hasVideo && <Button label="Watch Video Again" variant="secondary" onPress={watchVideoAgain} />}
           <Button label="Back to Path" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -182,75 +231,94 @@ export default function LessonPlayerScreen() {
           <Text style={[typography.bodyEmphasis, { color: color.textPrimary, flex: 1 }]} numberOfLines={1}>
             {lesson.title}
           </Text>
-          <Pressable
-            onPress={openChat}
-            hitSlop={8}
-            accessibilityLabel="Ask about this lesson"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: radii.pill,
-              backgroundColor: color.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <ChatIcon size={17} color={color.textPrimary} />
-          </Pressable>
-          <ToggleChip icon={WaveformIcon} active={voiceEnabled} onPress={toggleVoice} activeLabel="Listening" inactiveLabel="Listen" />
+          {!showQuiz && (
+            <Pressable
+              onPress={openChat}
+              hitSlop={8}
+              accessibilityLabel="Ask about this lesson"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: radii.pill,
+                backgroundColor: color.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ChatIcon size={17} color={color.textPrimary} />
+            </Pressable>
+          )}
+          {!showQuiz && (
+            <ToggleChip icon={WaveformIcon} active={voiceEnabled} onPress={toggleVoice} activeLabel="Listening" inactiveLabel="Listen" />
+          )}
         </View>
-        <LessonStoryProgress total={cards.length} current={index} accentColor={accentColor} />
+        {!showQuiz && <LessonStoryProgress total={cards.length} current={index} accentColor={accentColor} />}
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollEnd}
-        contentOffset={{ x: initialIndexRef.current * width, y: 0 }}
-        style={{ flex: 1 }}
-      >
-        {cards.map((card) => (
-          <View key={card.id} style={{ width, padding: spacing.lg }}>
-            <LessonCardView
-              card={card}
-              accentColor={accentColor}
-              accentTint={accentTint}
-              quizSelection={quizSelections[card.id]}
-              onSelectQuiz={(i) => setQuizSelections((prev) => ({ ...prev, [card.id]: i }))}
-              reflectionValue={reflectionText}
-              onChangeReflection={setReflectionText}
-              scenarioSelection={scenarioSelections[card.id]}
-              onSelectScenario={(i) => setScenarioSelections((prev) => ({ ...prev, [card.id]: i }))}
-              sequenceOrder={sequenceOrders[card.id] ?? []}
-              onTapSequenceItem={(originalIndex) => tapSequenceItem(card.id, originalIndex)}
-              onResetSequence={() => resetSequence(card.id)}
+      {showQuiz && lesson.quiz ? (
+        <LessonQuizView
+          quiz={lesson.quiz}
+          lessonId={lesson.id}
+          accentColor={accentColor}
+          accentTint={accentTint}
+          onFinish={finishLesson}
+          onWatchVideoAgain={hasVideo ? watchVideoAgain : undefined}
+        />
+      ) : (
+        <>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScrollEnd}
+            contentOffset={{ x: initialIndexRef.current * width, y: 0 }}
+            style={{ flex: 1 }}
+          >
+            {cards.map((card, cardIndex) => (
+              <View key={card.id} style={{ width, padding: spacing.lg }}>
+                <LessonCardView
+                  card={card}
+                  accentColor={accentColor}
+                  accentTint={accentTint}
+                  quizSelection={quizSelections[card.id]}
+                  onSelectQuiz={(i) => setQuizSelections((prev) => ({ ...prev, [card.id]: i }))}
+                  reflectionValue={reflectionText}
+                  onChangeReflection={setReflectionText}
+                  scenarioSelection={scenarioSelections[card.id]}
+                  onSelectScenario={(i) => setScenarioSelections((prev) => ({ ...prev, [card.id]: i }))}
+                  sequenceOrder={sequenceOrders[card.id] ?? []}
+                  onTapSequenceItem={(originalIndex) => tapSequenceItem(card.id, originalIndex)}
+                  onResetSequence={() => resetSequence(card.id)}
+                  isActiveCard={cardIndex === index}
+                  onVideoEnded={handleVideoEnded}
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={{ flexDirection: 'row', gap: spacing.md, padding: spacing.lg }}>
+            <Pressable
+              onPress={() => (index === 0 ? router.back() : goToIndex(index - 1))}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: radii.pill,
+                backgroundColor: color.surfaceAlt,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ChevronLeftIcon size={18} color={color.textPrimary} />
+            </Pressable>
+            <Button
+              label={isLast ? (hasQuiz ? 'Continue to Quiz' : 'Finish Lesson') : 'Continue'}
+              onPress={() => (isLast ? (hasQuiz ? setShowQuiz(true) : finishLesson()) : goToIndex(index + 1))}
+              style={{ flex: 1 }}
             />
           </View>
-        ))}
-      </ScrollView>
-
-      <View style={{ flexDirection: 'row', gap: spacing.md, padding: spacing.lg }}>
-        <Pressable
-          onPress={() => (index === 0 ? router.back() : goToIndex(index - 1))}
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: radii.pill,
-            backgroundColor: color.surfaceAlt,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ChevronLeftIcon size={18} color={color.textPrimary} />
-        </Pressable>
-        <Button
-          label={isLast ? 'Finish Lesson' : 'Continue'}
-          onPress={() => (isLast ? finishLesson() : goToIndex(index + 1))}
-          style={{ flex: 1 }}
-        />
-      </View>
+        </>
+      )}
 
       <LessonChatSheet
         visible={chatVisible}

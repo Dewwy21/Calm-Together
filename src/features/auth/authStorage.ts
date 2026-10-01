@@ -2,13 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthUser } from './types';
 
 // Mock local authentication — accounts and the current session live here,
-// entirely on-device, no backend. Scope boundary worth knowing: every
-// other feature in this app (kid profiles, Daily Log, Family Blueprint,
-// course progress, etc.) still stores its data under one flat, unscoped
-// key, not per-account — so two mock accounts on the same device share all
-// of that app data. Only identity (name/email) and the session itself are
-// actually separated per account. That's a deliberate, confirmed scope
-// boundary for this feature, not an oversight.
+// entirely on-device, no backend. Every other feature's data (kid profiles,
+// Daily Log, Family Blueprint, course progress, etc.) is scoped by childId,
+// and the child-profile list itself is scoped by accountId (see
+// profileStorage.ts), so a new account transitively gets its own empty
+// child list and, once a child is added, entirely separate data from every
+// other account on the same device.
 const USERS_KEY = 'otter-companion/auth-users';
 const SESSION_KEY = 'otter-companion/auth-session';
 

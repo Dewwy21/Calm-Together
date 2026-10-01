@@ -9,26 +9,30 @@ import {
 } from './conversationCardsData';
 import { ConversationCardsData, loadConversationCardsData, persistConversationCardsData } from './conversationCardsStorage';
 import { createId } from '../logEvent/eventStorage';
+import { useProfilesContext } from '../profiles/ProfilesProvider';
 
 const EMPTY: ConversationCardsData = { customCards: [], favoriteIds: [], hiddenIds: [], recentlyUsed: [], customDecks: [] };
 const MAX_RECENTS = 10;
 
 export function useConversationCardsState() {
+  const { currentChildId } = useProfilesContext();
   const [data, setData] = useState<ConversationCardsData>(EMPTY);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    loadConversationCardsData().then((stored) => {
+    if (!currentChildId) return;
+    setLoaded(false);
+    loadConversationCardsData(currentChildId).then((stored) => {
       setData(stored);
       setLoaded(true);
     });
-  }, []);
+  }, [currentChildId]);
 
   useEffect(() => {
-    if (loaded) {
-      persistConversationCardsData(data);
+    if (loaded && currentChildId) {
+      persistConversationCardsData(currentChildId, data);
     }
-  }, [data, loaded]);
+  }, [data, loaded, currentChildId]);
 
   const allQuestionsById = useMemo(() => {
     const map = new Map<string, ConversationQuestion>();

@@ -5,8 +5,9 @@ import { IconBubble } from '../../components/ui';
 import { CheckIcon, ArrowRightIcon, StarIcon, ChatIcon, HeadphonesIcon } from '../../components/icons';
 import { LessonCard, SequenceCard, MediaCard } from './types';
 import { seededShuffle } from '../../utils/seededPick';
-import { resolveVideoWatchUrl, resolveVideoThumbnailUrl } from './mediaSources';
+import { resolveVideoWatchUrl, resolveVideoThumbnailUrl, extractYouTubeId } from './mediaSources';
 import { useLessonMediaAudio } from './useLessonMediaAudio';
+import { YouTubeEmbed } from './YouTubeEmbed';
 
 const KIND_LABELS: Record<LessonCard['kind'], string> = {
   intro: 'START HERE',
@@ -37,6 +38,10 @@ interface LessonCardViewProps {
   sequenceOrder?: number[];
   onTapSequenceItem?: (originalIndex: number) => void;
   onResetSequence?: () => void;
+  /** True while this card is the one currently on screen — media cards use this to avoid mounting a live video player for every card in the lesson at once. */
+  isActiveCard?: boolean;
+  /** Fires when this card's video finishes playing (YouTube sources only). */
+  onVideoEnded?: () => void;
 }
 
 export function LessonCardView({
@@ -52,6 +57,8 @@ export function LessonCardView({
   sequenceOrder,
   onTapSequenceItem,
   onResetSequence,
+  isActiveCard,
+  onVideoEnded,
 }: LessonCardViewProps) {
   const { color, spacing, typography, radii, shadows } = useTheme();
 
@@ -293,20 +300,35 @@ export function LessonCardView({
         />
       )}
 
-      {card.kind === 'media' && <MediaCardBody card={card} accentColor={accentColor} accentTint={accentTint} />}
+      {card.kind === 'media' && (
+        <MediaCardBody card={card} accentColor={accentColor} accentTint={accentTint} isActive={!!isActiveCard} onEnded={onVideoEnded} />
+      )}
     </View>
   );
 }
 
-// A video opens externally (Linking.openURL) rather than embedding an
-// inline player — this app has no WebView/native video dependency, and
-// adding one just for this would be a bigger change than the media system
-// itself needs to be. Audio plays inline: expo-audio's useAudioPlayer
-// already accepts a remote URL directly (same dependency Calm Corner's
-// ambient track already uses), so no new dependency there. Pulled into its
-// own component, like SequenceCardBody above, so useLessonMediaAudio's
-// hook is only mounted while a media card is actually showing.
-function MediaCardBody({ card, accentColor, accentTint }: { card: MediaCard; accentColor: string; accentTint: string }) {
+// A YouTube video embeds inline via YouTubeEmbed (web: real IFrame Player
+// API; native: WebView running the same API), reporting back when playback
+// ends so the lesson player can auto-continue. A non-YouTube video URL
+// falls back to opening externally, since there's no generic embeddable
+// player for an arbitrary file link. Audio plays inline: expo-audio's
+// useAudioPlayer already accepts a remote URL directly (same dependency
+// Calm Corner's ambient track already uses). Pulled into its own component,
+// like SequenceCardBody above, so useLessonMediaAudio's hook (and the video
+// embed) only mount while a media card is actually showing.
+function MediaCardBody({
+  card,
+  accentColor,
+  accentTint,
+  isActive,
+  onEnded,
+}: {
+  card: MediaCard;
+  accentColor: string;
+  accentTint: string;
+  isActive: boolean;
+  onEnded?: () => void;
+}) {
   const { color, spacing, typography, radii } = useTheme();
   const audio = useLessonMediaAudio(card.mediaType === 'audio' ? card.sourceUrl : null);
 
@@ -344,22 +366,19 @@ function MediaCardBody({ card, accentColor, accentTint }: { card: MediaCard; acc
     );
   }
 
+  const youTubeId = extractYouTubeId(card.sourceUrl);
   const thumbnailUrl = resolveVideoThumbnailUrl(card.sourceUrl);
-  return (
-    <Pressable
-      onPress={() => Linking.openURL(resolveVideoWatchUrl(card.sourceUrl!))}
-      style={{ flex: 1, gap: spacing.md, justifyContent: 'center' }}
-    >
-      <View
-        style={{
-          borderRadius: radii.lg,
-          overflow: 'hidden',
-          backgroundColor: accentTint,
-          aspectRatio: 16 / 9,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+
+  // A YouTube source embeds inline once this card is the one on screen —
+  // rendering the live player for every video card in the lesson at once
+  // would mean multiple hidden players loading/autoplaying in the
+  // background, so off-screen video cards just show their thumbnail until
+  // scrolled to.
+  const videoArea =
+    youTubeId && isActive ? (
+      <YouTubeEmbed videoId={youTubeId} onEnded={onEnded} />
+    ) : (
+      <>
         {thumbnailUrl && <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%', position: 'absolute' }} />}
         <View
           style={{
@@ -373,7 +392,49 @@ function MediaCardBody({ card, accentColor, accentTint }: { card: MediaCard; acc
         >
           <Text style={{ color: '#fff', fontSize: 22, marginLeft: 3 }}>▶</Text>
         </View>
-      </View>
+      </>
+    );
+
+  // aspectRatio alone scales purely off the available width, which on a
+  // wide desktop browser window (this app has no other max-content-width
+  // cap) made the box grow taller than the screen itself — cutting off the
+  // player and burying its play button under the lesson's footer. Capping
+  // the width keeps the 16:9 box a sane, fully-visible size at any window
+  // width, while still shrinking to fit a normal phone-width screen as before.
+  const videoFrame = (
+    <View
+      style={{
+        width: '100%',
+        maxWidth: 640,
+        alignSelf: 'center',
+        borderRadius: radii.lg,
+        overflow: 'hidden',
+        backgroundColor: accentTint,
+        aspectRatio: 16 / 9,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {videoArea}
+    </View>
+  );
+
+  // A non-YouTube video has no generic embeddable player, so it still just
+  // opens externally when tapped — a YouTube video is embedded directly
+  // above and doesn't need (or want) an outer Pressable intercepting taps
+  // meant for the player itself.
+  return youTubeId ? (
+    <View style={{ flex: 1, gap: spacing.md, justifyContent: 'center' }}>
+      {videoFrame}
+      <Text style={[typography.h3, { color: color.textPrimary, textAlign: 'center' }]}>{card.title}</Text>
+      {!!card.caption && <Text style={[typography.bodySmall, { color: color.textSecondary, textAlign: 'center' }]}>{card.caption}</Text>}
+    </View>
+  ) : (
+    <Pressable
+      onPress={() => Linking.openURL(resolveVideoWatchUrl(card.sourceUrl!))}
+      style={{ flex: 1, gap: spacing.md, justifyContent: 'center' }}
+    >
+      {videoFrame}
       <Text style={[typography.h3, { color: color.textPrimary, textAlign: 'center' }]}>{card.title}</Text>
       {!!card.caption && <Text style={[typography.bodySmall, { color: color.textSecondary, textAlign: 'center' }]}>{card.caption}</Text>}
     </Pressable>

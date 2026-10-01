@@ -5,10 +5,13 @@ import { CourseId } from './types';
 // distinct, theme-adaptive color (works across all palette choices and
 // light/dark mode, unlike a hardcoded hex value would).
 const ROLE_BY_COURSE: Record<CourseId, 'primary' | 'secondary' | 'accent'> = {
-  tantrums: 'primary',
-  organization: 'secondary',
-  listening: 'accent',
-  social: 'primary',
+  presentMomentAwareness: 'accent',
+  selfAsContext: 'primary',
+  acceptance: 'secondary',
+  cognitiveDefusion: 'accent',
+  values: 'primary',
+  committedAction: 'secondary',
+  choicePoint: 'accent',
   personalized: 'secondary',
 };
 

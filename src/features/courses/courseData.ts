@@ -1,13 +1,10 @@
-import { WaveIcon, BackpackIcon, MegaphoneIcon, FlowerIcon, PersonIcon } from '../../components/icons';
+import { PersonIcon } from '../../components/icons';
 import { Course, CourseId, Lesson } from './types';
-import { TANTRUM_LESSONS } from './lessons/tantrumsLessons';
-import { ORGANIZATION_LESSONS } from './lessons/organizationLessons';
-import { LISTENING_LESSONS } from './lessons/listeningLessons';
-import { SOCIAL_LESSONS } from './lessons/socialLessons';
+import { ACT_PROCESSES, ACT_PROCESS_LESSONS } from './lessons/actProgramLessons';
 
 // --- Adding a video or audio moment to a lesson ---------------------------
 // Insert a 'media' card anywhere in a lesson's `cards` array (see
-// lessons/tantrumsLessons.ts etc. for the buildLesson() call sites) — it's
+// lessons/actProgramLessons.ts for the buildLesson() call sites) — it's
 // just another card kind, same as 'quiz' or 'concept':
 //
 //   { kind: 'media', mediaType: 'video', title: 'See it in action',
@@ -22,39 +19,58 @@ import { SOCIAL_LESSONS } from './lessons/socialLessons';
 //     storage once that's set up) — plays inline in the lesson.
 // See mediaSources.ts for exactly how each sourceUrl is resolved.
 
+// --- Filling in a real week's content --------------------------------------
+// Every lesson below is a deliberate placeholder (see actProgramLessons.ts）
+// — replace a `cards` array with real content (any mix of 'concept',
+// 'example', 'quiz', 'media', 'scenario', 'reflection', etc. — see
+// types.ts's LessonCard union for the full set) once it's written. The
+// lesson's `id`, `courseId`, and position in the 28-day schedule
+// (coursePath.ts) don't need to change — only its content does.
+
+// The 6 ACT processes + Choice Point, one course per process — see
+// types.ts's CourseId comment and coursePath.ts for how these 7 courses'
+// lessons interleave into the single Day 1-28 program schedule.
+const PROCESS_DESCRIPTIONS: Record<Exclude<CourseId, 'personalized'>, { subtitle: string; description: string }> = {
+  presentMomentAwareness: {
+    subtitle: 'Noticing what\'s happening, right now',
+    description: 'Practicing attention to the present moment — what\'s actually happening, rather than replaying the past or bracing for what\'s next.',
+  },
+  selfAsContext: {
+    subtitle: 'The steady you, underneath it all',
+    description: 'Connecting with the stable sense of self that observes every thought and feeling, without being defined by any single one of them.',
+  },
+  acceptance: {
+    subtitle: 'Making room for what\'s hard',
+    description: 'Making room for difficult thoughts and feelings instead of fighting them, so energy goes toward what actually helps.',
+  },
+  cognitiveDefusion: {
+    subtitle: 'Thoughts are thoughts, not orders',
+    description: 'Learning to notice a thought as just a thought — not a fact that has to be obeyed or argued with.',
+  },
+  values: {
+    subtitle: 'What actually matters to you',
+    description: 'Getting clear on what kind of parent you want to be, as a compass for hard moments — not a standard to be judged against.',
+  },
+  committedAction: {
+    subtitle: 'Real steps, even when it\'s hard',
+    description: 'Taking concrete, values-aligned action, even when it\'s uncomfortable — small steps that build over the 4 weeks.',
+  },
+  choicePoint: {
+    subtitle: 'Toward, or away — the moment of choice',
+    description: 'Recognizing the moment-by-moment choice between moving toward what matters or away from it, especially under difficult private experiences.',
+  },
+};
+
 export const COURSES: Course[] = [
-  {
-    id: 'tantrums',
-    title: 'Tantrums Tamed',
-    subtitle: 'Calm, confident responses to big emotions',
-    description:
-      'Tell tantrums and meltdowns apart, catch escalation early, and build a real toolkit for the hardest moments — plus the repair that comes after.',
-    icon: WaveIcon,
-  },
-  {
-    id: 'organization',
-    title: 'Mastering Organization',
-    subtitle: 'Routines and systems that actually stick',
-    description:
-      'Build visual schedules, landing zones, and routines that work with an ADHD brain instead of against it — small enough to actually survive a busy week.',
-    icon: BackpackIcon,
-  },
-  {
-    id: 'listening',
-    title: 'Teaching Your Kids to Listen',
-    subtitle: 'Instructions that land the first time',
-    description:
-      'Learn why instructions get missed, how to deliver them so they land, and how to follow through consistently without the nagging.',
-    icon: MegaphoneIcon,
-  },
-  {
-    id: 'social',
-    title: 'Mastering Social Skills',
-    subtitle: 'Building friendships and confidence',
-    description:
-      'From reading body language to handling rejection and rehearsing tricky moments ahead of time — practical support for the social side of ADHD.',
-    icon: FlowerIcon,
-  },
+  ...ACT_PROCESSES.map(
+    (def): Course => ({
+      id: def.id,
+      title: def.name,
+      subtitle: PROCESS_DESCRIPTIONS[def.id].subtitle,
+      description: PROCESS_DESCRIPTIONS[def.id].description,
+      icon: def.icon,
+    })
+  ),
   {
     id: 'personalized',
     title: 'My Personalized Lessons',
@@ -65,14 +81,13 @@ export const COURSES: Course[] = [
   },
 ];
 
-// The four built-in courses ship with fixed content. "personalized" has no
-// static lessons here — its lessons are generated per-family at runtime and
-// live in PersonalizedLessonsProvider instead (see personalizedLessons/).
+// The 7 ACT-process courses ship with placeholder content (see
+// actProgramLessons.ts) — real content replaces it lesson-by-lesson later,
+// no structural changes needed here. "personalized" has no static lessons;
+// its lessons are generated per-family at runtime and live in
+// PersonalizedLessonsProvider instead (see personalizedLessons/).
 const LESSONS_BY_COURSE: Record<CourseId, Lesson[]> = {
-  tantrums: TANTRUM_LESSONS,
-  organization: ORGANIZATION_LESSONS,
-  listening: LISTENING_LESSONS,
-  social: SOCIAL_LESSONS,
+  ...ACT_PROCESS_LESSONS,
   personalized: [],
 };
 

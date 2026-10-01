@@ -32,14 +32,20 @@ export default function SignupScreen() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const result = auth.signUp({ name, email, password });
-      setIsSubmitting(false);
+    setTimeout(async () => {
+      const result = await auth.signUp({ name, email, password });
       if (!result.ok) {
+        setIsSubmitting(false);
         setError(result.error ?? 'Something went wrong. Please try again.');
         return;
       }
-      setToast({ text: 'Verification email sent! (Just a demo — no real email was sent.)', variant: 'success' });
+      const sendResult = await auth.sendVerificationCode(email);
+      setIsSubmitting(false);
+      setToast(
+        sendResult.ok
+          ? { text: 'Verification code sent to your email.', variant: 'success' }
+          : { text: "Account created, but we couldn't send the code. You can resend it on the next screen.", variant: 'error' }
+      );
       setTimeout(() => router.replace('/'), 1800);
     }, LOADING_MIN_MS);
   }

@@ -87,6 +87,42 @@ function buildWeeklyPoints(
   });
 }
 
+// The primary longitudinal signal for tracking intervention progress — the
+// Single-Item Daily Parenting Stress Measure (1-7), asked on every Daily
+// Log entry regardless of eventType (see logEvent/types.ts). Older entries
+// logged before this question existed simply have no score and are
+// excluded, same pattern as every other dimension here.
+function computeDailyParentingStress(events: LoggedEvent[], firstActivityMs: number | null): GrowthDimension {
+  const buckets: number[][] = Array.from({ length: WEEKS }, () => []);
+  events.forEach((e) => {
+    if (typeof e.dailyStressScore !== 'number') return;
+    const idx = weekBucketIndex(e.occurredAtISO);
+    if (idx !== null) buckets[idx].push(e.dailyStressScore);
+  });
+
+  const weeklyPoints = buildWeeklyPoints(firstActivityMs, (i) => {
+    const b = buckets[i];
+    if (b.length === 0) return { score: null, rawStat: 'No Daily Log entries' };
+    const avg = average(b);
+    return { score: Math.round(100 - ((avg - 1) / 6) * 100), rawStat: `avg stress ${avg.toFixed(1)}/7` };
+  });
+
+  const trendExplanation = describeTrend(
+    buckets.map((b) => (b.length ? average(b) : null)),
+    { higherIsBetter: false, format: (v) => `${v.toFixed(1)}/7`, subject: 'Average daily parenting stress' }
+  );
+
+  return {
+    id: 'dailyParentingStress',
+    label: 'Daily Parenting Stress',
+    description:
+      'What this measures: your average answer (1-7) to "Overall, how stressful were your parenting experiences with your child today?" each week — the Single-Item Daily Parenting Stress Measure. Why it matters: this is the most direct day-to-day signal of how the intervention is working for you.',
+    weeklyPoints,
+    trendExplanation,
+    ...summarize(weeklyPoints),
+  };
+}
+
 function computeEmotionalRegulation(events: LoggedEvent[], firstActivityMs: number | null): GrowthDimension {
   const buckets: number[][] = Array.from({ length: WEEKS }, () => []);
   events
@@ -272,6 +308,7 @@ export function computeGrowthDimensions(input: {
   const firstActivityMs = allTimestamps.length ? Math.min(...allTimestamps) : null;
 
   return [
+    computeDailyParentingStress(input.events, firstActivityMs),
     computeEmotionalRegulation(input.events, firstActivityMs),
     computeConsistency(input.events, firstActivityMs),
     computeConfidence(input.lessonCompletionDates, firstActivityMs),

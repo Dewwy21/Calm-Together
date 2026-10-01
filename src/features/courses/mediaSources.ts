@@ -1,9 +1,10 @@
 // Resolves a MediaCard's `sourceUrl` into something playable/linkable.
-// Deliberately dependency-free: video opens externally via Linking rather
-// than an embedded player, since inline video would need a WebView/native
-// player library this project doesn't have — audio plays inline because
-// expo-audio's useAudioPlayer already accepts a remote URL directly (see
-// useLessonMediaAudio.ts), no new dependency needed there either.
+// YouTube videos embed inline via YouTubeEmbed.web.tsx/.native.tsx (which
+// also reports when playback ends); a non-YouTube video URL falls back to
+// opening externally via Linking, since there's no generic embeddable
+// player for an arbitrary file link. Audio plays inline because expo-audio's
+// useAudioPlayer already accepts a remote URL directly (see
+// useLessonMediaAudio.ts).
 
 const YOUTUBE_PATTERNS = [
   /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([\w-]{11})/,

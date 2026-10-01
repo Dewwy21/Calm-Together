@@ -9,6 +9,9 @@ import { usePreferencesContext } from '../preferences/PreferencesProvider';
 import { useFamilyContextInput } from '../ai/useFamilyContextInput';
 import { useBlueprintContext } from '../blueprint/BlueprintProvider';
 import { shouldShowDisclaimer } from '../aiEngine/disclaimer';
+import { logInteraction, activeModelName } from '../research/researchLogger';
+import { categoryForFeature } from '../research/researchCategories';
+import { actSkillLabel } from '../logEvent/actSkillOptions';
 
 const RECENT_SAFETY_WINDOW = 4;
 
@@ -151,6 +154,25 @@ export function useHelpBotState() {
       blueprintSummary: familyContext.blueprintSummary,
       recentSafetyEvent,
     });
+
+    // Fire-and-forget research logging — only reachable once `response`
+    // already exists (success or the engine's own fallback), so there's no
+    // way to log an incomplete record. Never awaited: this can't delay or
+    // block showing the reply below. See researchLogger.ts.
+    if (currentChildId) {
+      logInteraction({
+        sessionId: `CT_SESSION_${currentChildId}`,
+        interactionType: categoryForFeature('helpBot', response.interventionType),
+        feature: 'helpBot',
+        environment: preferences.researchMode === 'test' ? 'TEST' : 'REAL',
+        testCaseId: preferences.researchMode === 'test' ? preferences.activeTestCaseId : null,
+        userInput: trimmed,
+        aiResponse: response.text,
+        actProcess: response.actProcessesUsed.map(actSkillLabel).join('; '),
+        severity: response.safetyCategory,
+        model: activeModelName(),
+      });
+    }
 
     const recentDisclaimerFlags = historyForEngine
       .filter((m) => m.role === 'assistant')
