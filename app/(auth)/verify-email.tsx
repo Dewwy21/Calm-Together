@@ -38,27 +38,37 @@ export default function VerifyEmailScreen() {
   async function handleVerify() {
     setError(null);
     setIsVerifying(true);
-    const result = auth.verifyEmailCode(user.id, code);
-    setIsVerifying(false);
-    if (!result.ok) {
-      setError(result.error ?? 'Something went wrong. Please try again.');
-      return;
+    try {
+      const result = auth.verifyEmailCode(user.id, code);
+      if (!result.ok) {
+        setError(result.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
+      router.replace('/');
+    } finally {
+      // Guarantees the button is never left stuck disabled/"Verifying..."
+      // even if something above throws instead of returning cleanly.
+      setIsVerifying(false);
     }
-    router.replace('/');
   }
 
   async function handleResend() {
     setError(null);
     setIsResending(true);
-    const result = await auth.sendVerificationCode(user.email);
-    setIsResending(false);
-    if (!result.ok) {
-      setToast({ text: result.error ?? "Couldn't resend the code. Please try again.", variant: 'error' });
-      return;
+    try {
+      const result = await auth.sendVerificationCode(user.email);
+      if (!result.ok) {
+        setToast({ text: result.error ?? "Couldn't resend the code. Please try again.", variant: 'error' });
+        return;
+      }
+      setCode('');
+      setCooldownMsLeft(RESEND_COOLDOWN_MS);
+      setToast({ text: 'A new code was sent to your email.', variant: 'success' });
+    } finally {
+      // Same guarantee as handleVerify — Resend Code must never stay stuck
+      // disabled past a failed/thrown attempt.
+      setIsResending(false);
     }
-    setCode('');
-    setCooldownMsLeft(RESEND_COOLDOWN_MS);
-    setToast({ text: 'A new code was sent to your email.', variant: 'success' });
   }
 
   const canResend = cooldownMsLeft <= 0 && !isResending;

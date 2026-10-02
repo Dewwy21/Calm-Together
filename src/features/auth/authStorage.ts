@@ -16,7 +16,11 @@ export async function loadUsers(): Promise<AuthUser[]> {
     const raw = await AsyncStorage.getItem(USERS_KEY);
     if (!raw) return [];
     return JSON.parse(raw) as AuthUser[];
-  } catch {
+  } catch (err) {
+    // Previously silent — a corrupted/unparseable value here made every
+    // existing account look like it never existed, with no way to tell why.
+    // eslint-disable-next-line no-console
+    console.error('[authStorage] failed to load accounts — treating as empty:', err);
     return [];
   }
 }
@@ -24,15 +28,21 @@ export async function loadUsers(): Promise<AuthUser[]> {
 export async function persistUsers(users: AuthUser[]): Promise<void> {
   try {
     await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch {
-    // best-effort local persistence only
+  } catch (err) {
+    // Previously silent — a failed write here (e.g. storage quota exceeded,
+    // private-browsing restrictions) made signup look like it succeeded in
+    // the UI while the account was never actually saved.
+    // eslint-disable-next-line no-console
+    console.error('[authStorage] failed to save accounts — this account list will not persist:', err);
   }
 }
 
 export async function loadSession(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(SESSION_KEY);
-  } catch {
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[authStorage] failed to load the active session:', err);
     return null;
   }
 }
@@ -44,7 +54,8 @@ export async function persistSession(currentUserId: string | null): Promise<void
     } else {
       await AsyncStorage.removeItem(SESSION_KEY);
     }
-  } catch {
-    // best-effort local persistence only
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[authStorage] failed to save the active session:', err);
   }
 }

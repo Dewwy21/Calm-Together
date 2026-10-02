@@ -41,6 +41,12 @@ export function Toast({ message, onDismiss, duration = 3000 }: ToastProps) {
 
   return (
     <Animated.View
+      // Purely informational — no buttons/touches of its own — but without
+      // this, the absolutely-positioned box still captures taps for its
+      // entire bounding box while visible/fading, silently swallowing clicks
+      // on anything underneath or nearby (e.g. a Back button near the top of
+      // the screen, or Resend Code on Verify Email) until it fully dismisses.
+      pointerEvents="none"
       style={[
         {
           position: 'absolute',

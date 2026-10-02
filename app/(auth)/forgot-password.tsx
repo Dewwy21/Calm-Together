@@ -74,7 +74,11 @@ export default function ForgotPasswordScreen() {
       <Toast message={toast} onDismiss={() => setToast(null)} />
 
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: spacing.lg, paddingBottom: spacing.sm }}>
-        <BackButton onPress={() => (step === 'newPassword' ? setStep('email') : router.back())} />
+        <BackButton
+          onPress={() =>
+            step === 'newPassword' ? setStep('email') : router.canGoBack() ? router.back() : router.replace('/(auth)/welcome')
+          }
+        />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

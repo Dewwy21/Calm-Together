@@ -38,8 +38,35 @@ jobs:
       # out of the bundle or the network tab. This public build ships with
       # AI features showing their normal "not connected" fallback; full AI
       # still works when running locally against your own .env.
-      - name: Export web build
+      #
+      # EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT is different: it's not a credential
+      # (the Apps Script endpoint has no auth, by design — see
+      # verificationEmailClient.ts), so it's safe to ship. It's read from a
+      # repository *variable* (not a secret) so it's inlined into this build
+      # the same way it already is locally via .env — without it, both
+      # research logging and email verification silently no-op in
+      # production. One-time setup: Settings → Secrets and variables →
+      # Actions → Variables → New repository variable, named exactly
+      # EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT.
+      # TEMPORARY DIAGNOSTIC — remove once the missing-endpoint-in-prod issue
+      # is confirmed fixed. Prints only the length of the resolved value
+      # (never the value itself) so this is safe to leave in logs.
+      - name: "[diagnostic] check repo variable resolution"
+        env:
+          EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT: ${{ vars.EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT }}
         run: |
+          echo "[diagnostic] vars context value length: ${#EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}"
+          if [ -z "${EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}" ]; then
+            echo "[diagnostic] EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT is EMPTY in this job"
+          else
+            echo "[diagnostic] EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT is set (non-empty)"
+          fi
+
+      - name: Export web build
+        env:
+          EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT: ${{ vars.EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT }}
+        run: |
+          echo "[diagnostic] length seen by export step: ${#EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}"
           npx expo export --platform web
           cp dist/index.html dist/404.html
 
