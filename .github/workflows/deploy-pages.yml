@@ -48,37 +48,12 @@ jobs:
       # production. One-time setup: Settings → Secrets and variables →
       # Actions → Variables → New repository variable, named exactly
       # EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT.
-      # TEMPORARY DIAGNOSTIC — remove once the missing-endpoint-in-prod issue
-      # is confirmed fixed. Prints only the length of the resolved value
-      # (never the value itself) so this is safe to leave in logs.
-      - name: "[diagnostic] check repo variable resolution"
-        env:
-          EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT: ${{ vars.EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT }}
-        run: |
-          echo "[diagnostic] vars context value length: ${#EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}"
-          if [ -z "${EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}" ]; then
-            echo "[diagnostic] EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT is EMPTY in this job"
-          else
-            echo "[diagnostic] EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT is set (non-empty)"
-          fi
-
       - name: Export web build
         env:
           EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT: ${{ vars.EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT }}
         run: |
-          echo "[diagnostic] length seen by export step: ${#EXPO_PUBLIC_RESEARCH_LOG_ENDPOINT}"
           npx expo export --platform web
           cp dist/index.html dist/404.html
-
-      # TEMPORARY DIAGNOSTIC — checks the actual built output in this same
-      # job, removing all ambiguity about local-vs-CI or caching: does the
-      # bundle Expo just wrote to disk actually contain the endpoint host?
-      - name: "[diagnostic] check built bundle for the endpoint"
-        run: |
-          MATCHES=$(grep -rc "script.google.com" dist/_expo/static/js/web/entry-*.js || true)
-          echo "[diagnostic] occurrences of script.google.com in the built entry bundle: ${MATCHES}"
-          echo "[diagnostic] expo/cli version:"
-          npx expo --version
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
