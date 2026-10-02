@@ -70,6 +70,16 @@ jobs:
           npx expo export --platform web
           cp dist/index.html dist/404.html
 
+      # TEMPORARY DIAGNOSTIC — checks the actual built output in this same
+      # job, removing all ambiguity about local-vs-CI or caching: does the
+      # bundle Expo just wrote to disk actually contain the endpoint host?
+      - name: "[diagnostic] check built bundle for the endpoint"
+        run: |
+          MATCHES=$(grep -rc "script.google.com" dist/_expo/static/js/web/entry-*.js || true)
+          echo "[diagnostic] occurrences of script.google.com in the built entry bundle: ${MATCHES}"
+          echo "[diagnostic] expo/cli version:"
+          npx expo --version
+
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
