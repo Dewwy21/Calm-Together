@@ -42,6 +42,9 @@ interface LessonCardViewProps {
   isActiveCard?: boolean;
   /** Fires when this card's video finishes playing (YouTube sources only). */
   onVideoEnded?: () => void;
+  /** Fires when this card's video starts/resumes playing, or is paused (YouTube sources only). Optional — existing callers that don't pass these are unaffected. */
+  onVideoPlay?: () => void;
+  onVideoPause?: () => void;
 }
 
 export function LessonCardView({
@@ -59,6 +62,8 @@ export function LessonCardView({
   onResetSequence,
   isActiveCard,
   onVideoEnded,
+  onVideoPlay,
+  onVideoPause,
 }: LessonCardViewProps) {
   const { color, spacing, typography, radii, shadows } = useTheme();
 
@@ -301,7 +306,15 @@ export function LessonCardView({
       )}
 
       {card.kind === 'media' && (
-        <MediaCardBody card={card} accentColor={accentColor} accentTint={accentTint} isActive={!!isActiveCard} onEnded={onVideoEnded} />
+        <MediaCardBody
+          card={card}
+          accentColor={accentColor}
+          accentTint={accentTint}
+          isActive={!!isActiveCard}
+          onEnded={onVideoEnded}
+          onPlay={onVideoPlay}
+          onPause={onVideoPause}
+        />
       )}
     </View>
   );
@@ -322,12 +335,16 @@ function MediaCardBody({
   accentTint,
   isActive,
   onEnded,
+  onPlay,
+  onPause,
 }: {
   card: MediaCard;
   accentColor: string;
   accentTint: string;
   isActive: boolean;
   onEnded?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
 }) {
   const { color, spacing, typography, radii } = useTheme();
   const audio = useLessonMediaAudio(card.mediaType === 'audio' ? card.sourceUrl : null);
@@ -376,7 +393,7 @@ function MediaCardBody({
   // scrolled to.
   const videoArea =
     youTubeId && isActive ? (
-      <YouTubeEmbed videoId={youTubeId} onEnded={onEnded} />
+      <YouTubeEmbed videoId={youTubeId} onEnded={onEnded} onPlay={onPlay} onPause={onPause} />
     ) : (
       <>
         {thumbnailUrl && <Image source={{ uri: thumbnailUrl }} style={{ width: '100%', height: '100%', position: 'absolute' }} />}

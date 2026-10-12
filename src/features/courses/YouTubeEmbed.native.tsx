@@ -16,6 +16,13 @@ import WebView from 'react-native-webview';
 interface YouTubeEmbedProps {
   videoId: string;
   onEnded?: () => void;
+  /** Accepted for prop-interface parity with YouTubeEmbed.web.tsx (Stage 6
+   * is explicitly Expo Web only) — not yet wired to the WebView's postMessage
+   * relay here, so these are currently no-ops on native. Same optional,
+   * no-effect-if-unused contract as onEnded already has for callers that
+   * don't pass it. */
+  onPlay?: () => void;
+  onPause?: () => void;
 }
 
 const READY_TIMEOUT_MS = 15000;

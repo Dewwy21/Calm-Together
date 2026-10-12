@@ -20,6 +20,7 @@ import {
   runStorageTestPhase2,
   StorageTestStep,
 } from '../../src/features/research/storageTest';
+import { OpenFaceTestPanel } from '../../src/features/openface/OpenFaceTestPanel';
 
 const THEME_OPTIONS: { value: ThemeModePreference; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -324,6 +325,13 @@ export default function PreferencesScreen() {
               ))}
             </View>
           )}
+        </Section>
+
+        <Section
+          title="OpenFace Testing"
+          subtitle="Engineering testing only — connects to a local OpenFace 3.0 service, never shown to caregivers"
+        >
+          <OpenFaceTestPanel />
         </Section>
       </ScrollView>
 

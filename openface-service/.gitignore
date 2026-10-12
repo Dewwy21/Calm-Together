@@ -1,0 +1,10 @@
+# Isolated Python environment — regeneratable via requirements, not committed.
+venv/
+
+# Model weights (~107MB, downloaded automatically on first run from
+# huggingface.co/nutPace/openface_weights) — large binaries, not source.
+weights/
+
+# Python cache
+__pycache__/
+*.pyc

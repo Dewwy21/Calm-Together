@@ -2,6 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "moduleSuffixes": [".native", ".web", ""]
+    "moduleSuffixes": [".native", ".web", ""],
+    // Lets sensingSession.test.ts import its module with an explicit .ts
+    // extension, which is what makes it directly runnable via plain
+    // `node` (no bundler, no test framework dependency) — see that file's
+    // own header comment. Metro's own resolution is unaffected; this
+    // project only ever uses tsc for --noEmit type-checking, never to
+    // actually emit JS, so there's no real emit-workflow risk here.
+    "allowImportingTsExtensions": true
   }
 }

@@ -38,13 +38,17 @@ import React, { useEffect, useRef, useState } from 'react';
 interface YouTubeEmbedProps {
   videoId: string;
   onEnded?: () => void;
+  /** Fires on initial playback start AND every resume-after-pause (the YT IFrame API's PLAYING state fires for both) — optional, existing callers that don't pass it are unaffected. */
+  onPlay?: () => void;
+  /** Fires when the caregiver pauses playback — optional, same as onPlay. */
+  onPause?: () => void;
 }
 
 declare global {
   interface Window {
     YT?: {
       Player: new (target: HTMLElement, options: Record<string, unknown>) => YTPlayer;
-      PlayerState: { ENDED: number };
+      PlayerState: { ENDED: number; PLAYING: number; PAUSED: number };
     };
     onYouTubeIframeAPIReady?: () => void;
   }
@@ -77,7 +81,7 @@ function loadYouTubeIframeApi(): Promise<void> {
   return apiLoadPromise;
 }
 
-export function YouTubeEmbed({ videoId, onEnded }: YouTubeEmbedProps) {
+export function YouTubeEmbed({ videoId, onEnded, onPlay, onPause }: YouTubeEmbedProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const lastVideoIdRef = useRef<string | null>(null);
@@ -87,6 +91,10 @@ export function YouTubeEmbed({ videoId, onEnded }: YouTubeEmbedProps) {
   const [retryToken, setRetryToken] = useState(0);
   const onEndedRef = useRef(onEnded);
   onEndedRef.current = onEnded;
+  const onPlayRef = useRef(onPlay);
+  onPlayRef.current = onPlay;
+  const onPauseRef = useRef(onPause);
+  onPauseRef.current = onPause;
 
   useEffect(() => {
     const node = containerRef.current;
@@ -138,9 +146,10 @@ export function YouTubeEmbed({ videoId, onEnded }: YouTubeEmbedProps) {
             setReady(true);
           },
           onStateChange: (event: { data: number }) => {
-            if (window.YT && event.data === window.YT.PlayerState.ENDED) {
-              onEndedRef.current?.();
-            }
+            if (!window.YT) return;
+            if (event.data === window.YT.PlayerState.ENDED) onEndedRef.current?.();
+            else if (event.data === window.YT.PlayerState.PLAYING) onPlayRef.current?.();
+            else if (event.data === window.YT.PlayerState.PAUSED) onPauseRef.current?.();
           },
           onError: (event: { data: number }) => {
             window.clearTimeout(timeoutId);
